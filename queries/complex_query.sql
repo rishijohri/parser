@@ -10,8 +10,8 @@ SELECT a.column1,
         when column4 = 0 then 2
         else 0
     end as col4
-FROM sdb.source a
-LEFT JOIN sdb.source2 b ON a.column1 = b.column1
+FROM sdb.source 
+RIGHT JOIN sdb.source2 b ON a.column1 = b.column1
 WHERE column1 = 1
     AND column2 = 2
 GROUP BY column1,

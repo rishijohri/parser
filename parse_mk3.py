@@ -144,16 +144,16 @@ class Table:
             self.database = name[0]
 
     def source_table_parser(self, parsed_query):
-        if isinstance(parsed_query, pp.ParseResults):
-            source_table, self.source_alias = parsed_query
+        if len(parsed_query)==1:
+            self.source_table = parsed_query[0]
         else:
-            source_table = parsed_query
-        source_table = source_table.split(".")
-        if len(source_table) == 1:
-            self.source_table = source_table[0]
-        else:
-            self.source_table = source_table[1]
-            self.source_database = source_table[0]
+            self.source_table = parsed_query[0]
+            self.source_alias = parsed_query[1]
+
+    def data_entry1(self, parsed_query):
+        # table name 
+        table_name = parsed_query['table_def']
+        
 
     def data_entry(self, parsed_query):
         for i, token in enumerate(parsed_query):
@@ -210,9 +210,9 @@ def parse_create_query(query):
         pp.CaselessKeyword("AS") + pp.Word(pp.alphas + pp.nums + "_")
     )
     table_alias = pp.Optional(
-        pp.Optional(pp.CaselessKeyword("AS")) + pp.Word(pp.alphas + pp.nums + "_")
+        pp.Optional(pp.CaselessKeyword("AS")) + ~pp.CaselessKeyword('RIGHT') + pp.Word(pp.alphanums + "_")
     )
-    column = pp.Word(pp.alphas + pp.nums + "_.\"'*/-+")
+    column = pp.Word(pp.alphanums + "_.\"'*/-+")
     alias_column = pp.Group(column + column_alias)
     comparator = pp.delimitedList(
         pp.Group(column + pp.Word("=<>") + column),
@@ -232,12 +232,17 @@ def parse_create_query(query):
         + pp.CaselessKeyword("END")
         + column_alias
     )
-    columns = pp.delimitedList(pp.MatchFirst([case_column, alias_column, column]))
-    table_grammer = pp.Group(pp.Word(pp.alphas + "_.") + table_alias)
+    all_column = pp.MatchFirst([case_column, alias_column, column])
+    columns = pp.delimitedList(
+        all_column, delim=pp.Char(",")
+    ).setResultsName("columns")
+    table_grammer = pp.Group(pp.Word(pp.alphanums + "_.") + table_alias).setResultsName(
+        "table_def"
+    )
     create_clause = (
         pp.CaselessKeyword("CREATE")
         + pp.CaselessKeyword("TABLE")
-        + pp.Word(pp.alphas + "_*")
+        + pp.Word(pp.alphanums + "_*")
         + pp.CaselessKeyword("AS")
     )
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
@@ -247,22 +252,20 @@ def parse_create_query(query):
             delim=pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")]),
         )
     )
-    join_clause = (
-        pp.Optional(
-            pp.MatchFirst(
-                [
-                    pp.CaselessKeyword("LEFT"),
-                    pp.CaselessKeyword("RIGHT"),
-                    pp.CaselessKeyword("OUTER"),
-                    pp.CaselessKeyword("INNER"),
-                ]
-            )
+    join_clause = pp.Group(
+        pp.MatchFirst(
+            [
+                pp.CaselessKeyword("LEFT JOIN"),
+                pp.CaselessKeyword("RIGHT JOIN"),
+                pp.CaselessKeyword("OUTER JOIN"),
+                pp.CaselessKeyword("INNER JOIN"),
+                pp.CaselessKeyword("JOIN"),
+            ]
         )
-        + pp.CaselessKeyword("JOIN")
         + table_grammer
         + pp.CaselessKeyword("ON")
         + comparator
-    )
+    ).setResultsName("join")
     group_clause = pp.CaselessKeyword("GROUP BY") + pp.Group(pp.delimitedList(column))
     order_clause = pp.CaselessKeyword("ORDER BY") + pp.Group(pp.delimitedList(column))
     limit_clause = pp.CaselessKeyword("LIMIT") + pp.Word(pp.nums)
@@ -274,7 +277,7 @@ def parse_create_query(query):
         + column_clause
         + table_grammer
         + pp.Optional(where_clause)
-        + pp.ZeroOrMore(join_clause)
+        + pp.ZeroOrMore(join_clause).setResultsName("joins")
         + pp.Optional(where_clause)
         + pp.Optional(group_clause)
         + pp.Optional(order_clause)
@@ -282,6 +285,7 @@ def parse_create_query(query):
         + pp.Literal(";")
     )
     parsed_query = query_parser.parseString(query)
+    print(parsed_query['table_def'], type(parsed_query['table_def']))
     # Store the parsed value in Corresponding class
     table_data = Table()
     table_data.meta_data = parsed_query
@@ -297,10 +301,10 @@ queries = os.listdir("queries")
 to_print = [True, False]
 for i, query in enumerate(queries):
     with open("queries/" + query, "r") as f:
-        query = f.read()
-    table_data = parse_create_query(query)
-    if to_print[i]:
-        print(query)
-        print("-" * 100)
-        print(table_data)
-        print("-" * 100)
+        if to_print[i]:
+            query = f.read()
+            table_data = parse_create_query(query)
+            # print(query)
+            print("-" * 100)
+            print(table_data)
+            print("-" * 100)
