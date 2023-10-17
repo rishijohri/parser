@@ -144,16 +144,15 @@ class Table:
             self.database = name[0]
 
     def source_table_parser(self, parsed_query):
-        if len(parsed_query)==1:
+        if len(parsed_query) == 1:
             self.source_table = parsed_query[0]
         else:
             self.source_table = parsed_query[0]
             self.source_alias = parsed_query[1]
 
     def data_entry1(self, parsed_query):
-        # table name 
-        table_name = parsed_query['table_def']
-        
+        # table name
+        table_name = parsed_query["table_def"]
 
     def data_entry(self, parsed_query):
         for i, token in enumerate(parsed_query):
@@ -203,6 +202,11 @@ class TreeNode:
         child.parent = self
 
 
+# write function to seperate different queries from a string
+def separate_queries(queries):
+    return [query.strip() + ";" for query in queries.split(";") if query.strip()]
+
+
 # write parse_create_query function here using pyparsing
 def parse_create_query(query):
     # define grammer
@@ -210,20 +214,27 @@ def parse_create_query(query):
         pp.CaselessKeyword("AS") + pp.Word(pp.alphas + pp.nums + "_")
     )
     table_alias = pp.Optional(
-        pp.Optional(pp.CaselessKeyword("AS")) + ~pp.CaselessKeyword('RIGHT') + pp.Word(pp.alphanums + "_")
+        pp.Optional(pp.CaselessKeyword("AS"))
+        + ~pp.CaselessKeyword("RIGHT")
+        + pp.Word(pp.alphanums + "_")
     )
     column = pp.Word(pp.alphanums + "_.\"'*/-+")
     alias_column = pp.Group(column + column_alias)
-    comparator = pp.delimitedList(
+    equality_comparator = pp.delimitedList(
         pp.Group(column + pp.Word("=<>") + column),
         delim=pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")]),
+    )
+    in_comparator = pp.Group(
+        column
+        + pp.CaselessKeyword("IN")
+        + pp.MatchFirst([pp.Word("(")+pp.Group(pp.delimitedList(column))+pp.Word(")"), pp.Group(pp.delimitedList(column))])   # + pp.Literal(')')
     )
     case_column = pp.Group(
         pp.CaselessKeyword("CASE")
         + pp.Group(
             pp.OneOrMore(
                 pp.CaselessKeyword("WHEN")
-                + comparator
+                + equality_comparator
                 + pp.CaselessKeyword("THEN")
                 + column
             )
@@ -233,9 +244,7 @@ def parse_create_query(query):
         + column_alias
     )
     all_column = pp.MatchFirst([case_column, alias_column, column])
-    columns = pp.delimitedList(
-        all_column, delim=pp.Char(",")
-    ).setResultsName("columns")
+    columns = pp.delimitedList(all_column, delim=pp.Char(",")).setResultsName("columns")
     table_grammer = pp.Group(pp.Word(pp.alphanums + "_.") + table_alias).setResultsName(
         "table_def"
     )
@@ -248,7 +257,7 @@ def parse_create_query(query):
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
     where_clause = pp.CaselessKeyword("WHERE") + pp.Group(
         pp.delimitedList(
-            comparator,
+            equality_comparator,
             delim=pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")]),
         )
     )
@@ -264,7 +273,7 @@ def parse_create_query(query):
         )
         + table_grammer
         + pp.CaselessKeyword("ON")
-        + comparator
+        + equality_comparator
     ).setResultsName("join")
     group_clause = pp.CaselessKeyword("GROUP BY") + pp.Group(pp.delimitedList(column))
     order_clause = pp.CaselessKeyword("ORDER BY") + pp.Group(pp.delimitedList(column))
@@ -285,7 +294,7 @@ def parse_create_query(query):
         + pp.Literal(";")
     )
     parsed_query = query_parser.parseString(query)
-    print(parsed_query['table_def'], type(parsed_query['table_def']))
+    print(parsed_query["table_def"], type(parsed_query["table_def"]))
     # Store the parsed value in Corresponding class
     table_data = Table()
     table_data.meta_data = parsed_query
@@ -295,16 +304,23 @@ def parse_create_query(query):
 
 
 # Example usage:
-
+specific_file = "complex_query.sql"
+parse_specific_file = True
 # List all files in queries directory
-queries = os.listdir("queries")
-to_print = [True, False]
-for i, query in enumerate(queries):
-    with open("queries/" + query, "r") as f:
-        if to_print[i]:
-            query = f.read()
-            table_data = parse_create_query(query)
-            # print(query)
-            print("-" * 100)
-            print(table_data)
-            print("-" * 100)
+if parse_specific_file:
+    with open("queries/" + specific_file, "r") as f:
+        main_query = f.read()
+        queries = separate_queries(main_query)
+        for query in queries:
+            result = parse_create_query(query)
+            print(result)
+
+else:
+    files = os.listdir("queries")
+    for i, sql_file in enumerate(files):
+        with open("queries/" + sql_file, "r") as f:
+            main_query = f.read()
+            queries = separate_queries(main_query)
+            for query in queries:
+                result = parse_create_query(query)
+                print(result)

@@ -1,5 +1,6 @@
 import sqlglot
-
+from sqlglot.executor import execute 
+import os
 # Class for storing Table name, column names and source tables and filters for a SQL query.
 
 class SQLQuery:
@@ -32,8 +33,21 @@ class SQLQuery:
         return f'Table name: {self.table_name}\nColumns: {self.columns}\nSource table: {self.source_table}\nFilters: {self.filters}\nSource table columns: {self.source_table_columns}\n'
 
 
-# Example usage:
+specific_file = 'many_query.sql'
+parse_specific_file = True
 
-query = 'CREATE TABLE new_table AS SELECT a.column1, column2 FROM sdb.source a WHERE column1 = 1 AND column2 = 2 ;'
-sql_query = SQLQuery(query)
-print(sql_query)
+if parse_specific_file:
+    with open("queries/" + specific_file, "r") as f:
+        main_query = f.read()
+        result = execute(main_query)
+        print(result)
+
+else:
+    files = os.listdir("queries")
+    for i, sql_file in enumerate(files):
+        with open("queries/" + sql_file, "r") as f:
+            main_query = f.read()
+            result = execute(main_query)
+            print("Query: " + sql_file)
+            print("Result: ")
+            print(type(result[0]))
