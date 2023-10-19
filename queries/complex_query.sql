@@ -1,8 +1,29 @@
+CREATE TABLE source AS
+SELECT column1,
+    column2,
+    column3,
+    column4,
+    column45
+from sdb.source_original;
+
+
+CREATE TABLE source2 AS
+SELECT column1,
+    column2,
+    column3,
+    column4,
+    column45
+from sdb.source_original
+WHERE column1 = 1
+    AND column2 = 2;
+
+
 CREATE TABLE new_table AS
-SELECT a.column1,
+SELECT b.column1,
     column2 as whatever,
     CASE
-        WHEN column3 < 5 THEN 1
+        WHEN a.column3 < 5 or b.column3=10 THEN 1
+        WHEN column3 > 5 THEN 2
         else 0
     end as col3,
     case
@@ -10,8 +31,8 @@ SELECT a.column1,
         when column4 = 0 then 2
         else 0
     end as col4
-FROM sdb.source 
-RIGHT JOIN sdb.source2 b ON a.column1 = b.column1
+FROM sdb.source a
+LEFT JOIN sdb.source2 b ON a.column1 = b.column1
 WHERE column1 = 1
     AND column2 = 2
 GROUP BY column1,
