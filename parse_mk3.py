@@ -29,6 +29,7 @@ special_words = (
     + ~pp.CaselessKeyword("AND")
     + ~pp.CaselessKeyword("OR")
 )
+
 special_words_list = [
     "RIGHT",
     "LEFT",
@@ -215,19 +216,7 @@ class Column:
         )
 
 
-# Create class to store information about Filter
-
-
-class Filter:
-    def __init__(self, variable, comparator, value):
-        self.variable = variable
-        self.comparator = comparator
-        self.value = value
-
-
 # Create class to store information about Join
-
-
 class Join:
     def __init__(self, table, join_type, condition):
         self.table = table[0]
@@ -248,8 +237,6 @@ class Join:
 
 
 # Create class to store information about Table
-
-
 class Table:
     def __init__(self, name="Unset", alias=None):
         self.database = "Default"
@@ -353,44 +340,9 @@ class Table:
         # post process columns
         self.post_process()
 
-    def data_entry(self, parsed_query):
-
-        for i, token in enumerate(parsed_query):
-            if token == "CREATE":
-                self.name_parser(parsed_query[i + 2])
-            elif token == "SELECT":
-                k = parsed_query.asList().index("FROM")
-                for j in range(i + 1, k):
-                    self.columns.append(Column(parsed_query[j]))
-            elif token == "FROM":
-                self.source_table_parser(parsed_query[i + 1])
-            elif token == "WHERE":
-                self.filters = parsed_query[i + 1]
-            elif token == "JOIN":
-                self.joins.append(
-                    Join(parsed_query[i + 1], parsed_query[i + 2], parsed_query[i + 3])
-                )
-            elif token == "GROUP BY":
-                self.group_by = parsed_query[i + 1]
-            elif token == "ORDER BY":
-                self.order_by = parsed_query[i + 1]
-            elif token == "LIMIT":
-                self.limit = parsed_query[i + 1]
-
-        # Change source table of each column to source table of table
-        for column in self.columns:
-            if column.source_table == None:
-                column.source_table = self.source_table
-                column.source_database = self.source_database
-            if column.source_column == None:
-                column.source_column = column.name
-            if column.alias == None:
-                column.alias = column.name
 
 
 # Create a Tree Node which will store information about tables. children will be source tables and parent will be new table.
-
-
 class TreeNode:
     def __init__(self, table):
         self.table = table
