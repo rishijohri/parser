@@ -20,10 +20,11 @@ WHERE column1 = 1
 
 CREATE TABLE new_table AS
 SELECT b.column1,
-    column2 as whatever,
+    a.column1+100 as whatever,
     CASE
-        WHEN a.column3 < 5 or b.column3=10 AND b.column3>2 THEN 1
+        WHEN a.column3 < a.column45 or b.column3=10 AND b.column3>2 THEN 1
         WHEN column2 > 5 THEN 2
+        when column1 in (1,2,3) then 3
         else 0
     end as col3,
     case
@@ -35,5 +36,6 @@ FROM sdb.source a
 LEFT JOIN source2 b ON a.column1 = b.column1
 WHERE column1 = 1
     AND column2 = 2
+    and column3 in (1,2,3)
 GROUP BY column1,
     column2;

@@ -1,0 +1,24 @@
+CREATE TABLE Default.source2 AS 
+SELECT column1 AS column1
+, column3 AS column3
+FROM sdb.source_original
+WHERE source_original.column1 = 1 AND source_original.column2 = 2  
+
+CREATE TABLE Default.source AS 
+SELECT column1 AS column1
+, column2 AS column2
+, column3 AS column3
+, column45 AS column45
+FROM sdb.source_original
+
+CREATE TABLE Default.new_table AS 
+SELECT CASE 
+WHEN source.column3 < source.column45 OR source2.column3 = 10 AND source2.column3 > 2  THEN 1
+ WHEN source.column2 > 5  THEN 2
+ WHEN source.column1 IN (1,2,3) THEN 3
+ ELSE 0
+END AS col3
+FROM sdb.source
+LEFT JOIN source2 ON source.column1 = source2.column1  
+WHERE source.column1 = 1 AND source.column2 = 2 AND source.column3 IN (1,2,3) 
+
