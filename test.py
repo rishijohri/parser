@@ -1,65 +1,55 @@
 import pyparsing as pp
-special_words = (
-    ~pp.CaselessKeyword("RIGHT")
-    + ~pp.CaselessKeyword("LEFT")
-    + ~pp.CaselessKeyword("INNER")
-    + ~pp.CaselessKeyword("OUTER")
-    + ~pp.CaselessKeyword("JOIN")
-    + ~pp.CaselessKeyword("ON")
-    + ~pp.CaselessKeyword("WHEN")
-    + ~pp.CaselessKeyword("THEN")
-    + ~pp.CaselessKeyword("ELSE")
-    + ~pp.CaselessKeyword("END")
-    + ~pp.CaselessKeyword("CASE")
-    + ~pp.CaselessKeyword("WHERE")
-    + ~pp.CaselessKeyword("GROUP")
-    + ~pp.CaselessKeyword("ORDER")
-    + ~pp.CaselessKeyword("LIMIT")
-    + ~pp.CaselessKeyword("FROM")
-    + ~pp.CaselessKeyword("SELECT")
-    + ~pp.CaselessKeyword("CREATE")
-    + ~pp.CaselessKeyword("TABLE")
-    + ~pp.CaselessKeyword("AS")
-    + ~pp.CaselessKeyword("IN")
-    + ~pp.CaselessKeyword("AND")
-    + ~pp.CaselessKeyword("OR")
-)
+
 # Define grammar for matching a column name
-column_name = pp.Word(pp.alphanums + "_")
-aggregate_func = (
-        pp.CaselessKeyword("SUM")
-        | pp.CaselessKeyword("AVG")
-        | pp.CaselessKeyword("COUNT")
-    )
-    # Base column Grammar (Column can have aggregation function)
-column_name = pp.Optional(
-    pp.Group(
-        special_words+
-         pp.Optional(
-            aggregate_func.setResultsName("aggregate_func") + pp.Suppress("(")
-        )
-        + pp.Optional(
-            pp.Word(pp.alphanums).setResultsName("source") + pp.Suppress(".")
-        )
-        + pp.Word(pp.alphanums + "_\"'*/-+").setResultsName("name")
-        + pp.Optional(pp.Suppress(")"))
-    )
-).setResultsName("base_column")
-# Define grammar for matching a value
-value = pp.Word(pp.alphanums + "_'\"")
+column_name = pp.Word(pp.alphas, pp.alphanums + "_$").setResultsName("name")
 
-# Define grammar for matching a list of values
-value_list = pp.Group(pp.Word("(") + pp.delimitedList(value) + pp.Word(")"))
+# Define grammar for matching a function argument
+arg = pp.Word(pp.alphanums + "_$")
 
-# Define grammar for matching an IN condition
-in_condition = pp.Group(
-    column_name
-    + pp.CaselessKeyword("IN")
-    + value_list
+# Define grammar for matching a function call
+func_call = pp.Group(
+    pp.Word(pp.alphas).setResultsName("func_name")
+    + pp.Suppress("(")
+    + pp.delimitedList(arg).setResultsName("args")
+    + pp.Suppress(")")
 )
+
+# Define grammar for matching a column with a function call
+func_column = pp.Group(
+    func_call.setResultsName("func_call")
+    + pp.Suppress(".")
+    + column_name.setResultsName("column_name")
+)
+
+# Define grammar for matching a column with a substring function call
+substr_column = pp.Group(
+    pp.CaselessKeyword("substr").setResultsName("func_name")
+    + pp.Suppress("(")
+    + column_name.setResultsName("base_column")
+    + pp.Suppress(",")
+    + pp.Word(pp.nums).setResultsName("start")
+    + pp.Suppress(",")
+    + pp.Word(pp.nums).setResultsName("length")
+    + pp.Suppress(")")
+)
+
+# Define grammar for matching a case statement
+case_statement = pp.CaselessKeyword("CASE").setResultsName("case") + pp.OneOrMore(
+        pp.CaselessKeyword("WHEN").setResultsName("when")
+        + pp.delimitedList(column_name | pp.quotedString).setResultsName("conditions")
+        + pp.CaselessKeyword("THEN").setResultsName("then")
+        + (column_name | pp.quotedString).setResultsName("result")  
+).setResultsName("cases") + pp.Optional(
+    pp.CaselessKeyword("ELSE").setResultsName("else")
+    + (column_name | pp.quotedString).setResultsName("default")
+) + pp.CaselessKeyword("END").setResultsName("end")
+
+
+# Define grammar for matching a SQL query
+sql_query = pp.CaselessKeyword("SELECT").suppress() + pp.delimitedList(substr_column | func_column | column_name | case_statement) + pp.CaselessKeyword("FROM").suppress() + pp.Word(pp.alphas, pp.alphanums + "_$").setResultsName("table_name")
 
 # Example usage
-input_str = "column1 IN (4, '5', 6)"
-result = in_condition.parseString(input_str)
+input_str = """SELECT column1, column2, CASE wHEN abc ccc THEN abcd ELSE asdf END FROM table1"""
+result = sql_query.parseString(input_str)
 
-print(result)  # Output: [['column1', 'IN', ['4', "'5'", '6']]]
+print(result)  # Output: ['column1', 'column2', ['case', [['when', ['column3', '=', 'value'], 'then', 'match'], ['else', 'no match']]], 'table1']

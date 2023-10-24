@@ -5,6 +5,7 @@ from tkinter import filedialog
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from choice_view import choose_elements
 from display_view import display_text
+
 app = QApplication([])
 # Create class to store information about Column
 all_tables = []
@@ -167,14 +168,15 @@ class Condition:
                         for source_column in source_columns:
                             if (
                                 source_column.column == condition.LHS[0].name
-                                and source_column.source_alias == condition.LHS[0].source
+                                and source_column.source_alias
+                                == condition.LHS[0].source
                             ):
                                 LHS_name = (
                                     source_column.source_table
                                     + "."
                                     + source_column.column
                                 )
-                        RHS_name = ','.join(condition.RHS[1])
+                        RHS_name = ",".join(condition.RHS[1])
                         query += (
                             LHS_name
                             + " "
@@ -191,17 +193,23 @@ class Condition:
                         for source_column in source_columns:
                             if (
                                 source_column.column == condition.LHS[0].name
-                                and source_column.source_alias == condition.LHS[0].source
+                                and source_column.source_alias
+                                == condition.LHS[0].source
                             ):
                                 LHS_name = (
-                                    source_column.source_table + "." + source_column.column
+                                    source_column.source_table
+                                    + "."
+                                    + source_column.column
                                 )
                             if (
                                 source_column.column == condition.RHS[0].name
-                                and source_column.source_alias == condition.RHS[0].source
+                                and source_column.source_alias
+                                == condition.RHS[0].source
                             ):
                                 RHS_name = (
-                                    source_column.source_table + "." + source_column.column
+                                    source_column.source_table
+                                    + "."
+                                    + source_column.column
                                 )
                         query += (
                             LHS_name
@@ -351,8 +359,7 @@ class Column:
         # for each case within case statement
         for i in range(len(parse_query.cases)):
             current_condition = Condition(
-                parse_query.cases[i].all_condition,
-                parse_query.cases[i].result[0].name,
+                parse_query.cases[i].all_condition, parse_query.cases[i].result[0].name,
             )
             self.conditions.append(current_condition)
 
@@ -663,12 +670,14 @@ def parse_create_query(query):
         pp.CaselessKeyword("SUM")
         | pp.CaselessKeyword("AVG")
         | pp.CaselessKeyword("COUNT")
+        | pp.CaselessKeyword("MIN")
+        | pp.CaselessKeyword("MAX")
     )
     # Base column Grammar (Column can have aggregation function)
     column = pp.Optional(
         pp.Group(
-            special_words +
-            pp.Optional(
+            special_words
+            + pp.Optional(
                 aggregate_func.setResultsName("aggregate_func") + pp.Suppress("(")
             )
             + pp.Optional(
@@ -693,21 +702,12 @@ def parse_create_query(query):
         column.setResultsName("LHS")
         + pp.CaselessKeyword("IN")
         + pp.Group(
-            pp.Word("(")
-            + pp.Group(pp.delimitedList(value))
-            + pp.Word(")")
+            pp.Word("(") + pp.Group(pp.delimitedList(value)) + pp.Word(")")
         ).setResultsName("RHS")
     )
-    condition_clause = pp.MatchFirst(
-        [
-            equality_condition,
-            in_condition_clause
-        ]
-    )
+    condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
 
-    all_conditions = pp.ZeroOrMore(
-        condition_clause 
-    ).setResultsName("all_condition")
+    all_conditions = pp.ZeroOrMore(condition_clause).setResultsName("all_condition")
 
     case_column = pp.Group(
         pp.Optional(
@@ -739,11 +739,11 @@ def parse_create_query(query):
     all_column = pp.Group(column + case_column + column_alias).setResultsName(
         "all_column"
     )
-    
+
     columns = pp.delimitedList(all_column, delim=pp.Char(",")).setResultsName("columns")
 
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
-    
+
     # Table grammer
     table_grammer = pp.Group(pp.Word(pp.alphanums + "_.") + table_alias).setResultsName(
         "table_def"
@@ -775,10 +775,10 @@ def parse_create_query(query):
 
     # Group by clause grammer
     group_clause = pp.CaselessKeyword("GROUP BY") + pp.Group(pp.delimitedList(column))
-    
+
     # Order by clause grammer
     order_clause = pp.CaselessKeyword("ORDER BY") + pp.Group(pp.delimitedList(column))
-    
+
     # Limit clause grammer
     limit_clause = pp.CaselessKeyword("LIMIT") + pp.Word(pp.nums)
     # print('eqsearch ', equality_condition.searchString('column1 = column2').dump())
@@ -899,12 +899,13 @@ def get_definition(table_name, column_name, tables, print_result=False):
             table_recreates.append(table_recreate)
 
     table_recreates.reverse()
-    def_str = ''
+    def_str = ""
     for table_recreate in table_recreates:
         if print_result:
             print(table_recreate)
         def_str += table_recreate + "\n"
     return table_recreates, def_str
+
 
 def read_script(file_path):
     tables = []
@@ -924,30 +925,38 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = True 
+    show_window = False
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
-        file_path, _ = QFileDialog.getOpenFileName(None, "Open file", "", "All files (*.*)")
-        
-        print('after file read')
-        with open(file_path, 'r'):
+        file_path, _ = QFileDialog.getOpenFileName(
+            None, "Open file", "", "All files (*.*)"
+        )
+
+        print("after file read")
+        with open(file_path, "r"):
             tables = read_script(file_path)
             table_names = []
             for table in tables:
                 table_names.append(table.name)
             print(table_names)
         if table_names != []:
-            table_name = choose_elements(table_names, "Table Selection", "Select Table", allow_multiple=False)[0]
-            
+            table_name = choose_elements(
+                table_names, "Table Selection", "Select Table", allow_multiple=False
+            )[0]
+
             column_names = []
             for table in tables:
                 if table.name == table_name:
                     for column in table.columns:
                         column_names.append(column.name)
-            column_names = choose_elements(column_names, "Column Selection", "Select Column", allow_multiple=True)
+            column_names = choose_elements(
+                column_names, "Column Selection", "Select Column", allow_multiple=True
+            )
             print(table_name)
             print(column_names)
-            definition, definition_str = get_definition(table_name, column_names, tables)
+            definition, definition_str = get_definition(
+                table_name, column_names, tables
+            )
             to_print = display_text(definition_str)
             if to_print:
                 # write defintion string in file
@@ -956,10 +965,10 @@ if __name__ == "__main__":
     else:
         tables = []
         file_path = "queries/complex_Query.sql"
-        with open(file_path, 'r'):
+        with open(file_path, "r"):
             tables = read_script(file_path)
         table_name = "new_table"
-        column_name = ["col3"]
+        column_name = ["whatever"]
         definition, definition_str = get_definition(table_name, column_name, tables)
         print(definition_str)
 
@@ -989,7 +998,4 @@ if __name__ == "__main__":
 #             queries = separate_queries(main_query)
 #             for query in queries:
 #                 result = parse_create_query(query)
-                # pprint(result)
-
-
-
+# pprint(result)
