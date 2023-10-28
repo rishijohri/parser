@@ -141,7 +141,10 @@ class Condition:
 
     def post_process(self, alias_names, alias_list):
         for source_column in self.source_columns:
-            if source_column.source_alias in alias_list:
+            if source_column.column.upper() == "NULL":
+                source_column.source_table = "null"
+                source_column.source_alias = "null"
+            elif source_column.source_alias in alias_list:
                 source_column.source_table = alias_names[source_column.source_alias]
             elif source_column.source_alias == "":
                 source_column.source_table = alias_names[alias_list[0]]
@@ -183,7 +186,7 @@ class Condition:
                             + condition[1]
                             + " ("
                             + str(RHS_name)
-                            + ")"
+                            + ") "
                             + condition.delimiter
                             + " "
                         )
@@ -301,6 +304,10 @@ class Column:
         # check if column has case statement
         if len(parse_query.case_column) != 0:
             self.case_parser(parse_query.case_column)
+
+        #post process conditions
+        for condition in self.conditions:
+            condition.post_process(alias_names, alias_list)
 
         # extract distinct source columns and source aliases
         for condition in self.conditions:
@@ -430,13 +437,6 @@ class Column:
 # Create class to store information about Join
 class Join:
     def __init__(self, table, join_type, condition):
-        # self.join_database = 'Default'
-        # source_table_raw = table[0].split(".")
-        # if len(source_table_raw) == 1:
-        #     self.table = source_table_raw[0]
-        # else:
-        #     self.table = source_table_raw[1]
-        #     self.join_database = source_table_raw[0]
         self.table = table[0]
         if len(table) > 1:
             self.alias = table[1]
@@ -449,11 +449,9 @@ class Join:
         self.source_aliases = self.condition.source_aliases
 
     def post_process(self, alias_names, alias_list):
-        for source_column in self.source_columns:
-            if source_column.source_alias in alias_list:
-                source_column.source_table = alias_names[source_column.source_alias]
-            elif source_column.source_alias == "":
-                source_column.source_table = alias_names[alias_list[0]]
+        self.condition.post_process(alias_names, alias_list)
+        self.source_columns = self.condition.source_columns
+        self.source_aliases = self.condition.source_aliases
 
     def __str__(self):
         source_column_str = "\n"
@@ -472,7 +470,7 @@ class Join:
 class Table:
     def __init__(self, name="Unset", alias=None):
         self.database = "Default"
-        self.source_database = None
+        self.source_database = "Default"
         self.source_table = None
         self.name = name
         self.source_alias = alias
@@ -693,7 +691,7 @@ def parse_create_query(query):
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
     equality_condition = pp.Group(
         column.setResultsName("LHS")
-        + pp.Word("=<>")
+        + (pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS"))
         + column.setResultsName("RHS")
         + pp.Optional(delimiter).setResultsName("delimiter")
     )
@@ -704,6 +702,7 @@ def parse_create_query(query):
         + pp.Group(
             pp.Word("(") + pp.Group(pp.delimitedList(value)) + pp.Word(")")
         ).setResultsName("RHS")
+        + pp.Optional(delimiter).setResultsName("delimiter")
     )
     condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
 
@@ -731,6 +730,7 @@ def parse_create_query(query):
     create_clause = pp.Group(
         pp.CaselessKeyword("CREATE")
         + pp.CaselessKeyword("TABLE")
+        + pp.Optional(pp.CaselessKeyword("IF NOT EXISTS"))
         + pp.Word(pp.alphanums + "_*").setResultsName("table_name")
         + pp.CaselessKeyword("AS")
     ).setResultsName("create")
@@ -791,7 +791,7 @@ def parse_create_query(query):
         + table_grammer
         + pp.Optional(where_clause).setResultsName("wheres1")
         + pp.Optional(pp.Literal(";"))
-        + pp.Optional(pp.delimitedList(join_clause)).setResultsName("joins")
+        + pp.Optional(pp.OneOrMore(join_clause)).setResultsName("joins")
         + pp.Optional(pp.Literal(";"))
         + pp.Optional(where_clause).setResultsName("wheres2")
         + pp.Optional(pp.Literal(";"))
@@ -967,8 +967,11 @@ if __name__ == "__main__":
         file_path = "queries/complex_Query.sql"
         with open(file_path, "r"):
             tables = read_script(file_path)
+        new_table = tables[2]
+        # print(new_table.meta_data)
+        # print(new_table.columns[3])
         table_name = "new_table"
-        column_name = ["whatever"]
+        column_name = ["col3"]
         definition, definition_str = get_definition(table_name, column_name, tables)
         print(definition_str)
 
