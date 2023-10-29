@@ -167,18 +167,18 @@ class Condition:
                     query += "ELSE " + condition.results + " "
                 else:
                     if condition[1].upper() == "IN":
-                        LHS_name = condition.LHS[0].name
+                        LHS_name = condition.LHS.name
                         for source_column in source_columns:
                             if (
-                                source_column.column == condition.LHS[0].name
-                                and source_column.source_alias
-                                == condition.LHS[0].source
+                                source_column.column == condition.LHS.name
+                                and source_column.source_alias == condition.LHS.source
                             ):
                                 LHS_name = (
                                     source_column.source_table
                                     + "."
                                     + source_column.column
                                 )
+                        # RHS[0] and RHS[2] are ( and )
                         RHS_name = ",".join(condition.RHS[1])
                         query += (
                             LHS_name
@@ -191,13 +191,12 @@ class Condition:
                             + " "
                         )
                     else:
-                        LHS_name = condition.LHS[0].name
-                        RHS_name = condition.RHS[0].name
+                        LHS_name = condition.LHS.name
+                        RHS_name = condition.RHS.name
                         for source_column in source_columns:
                             if (
-                                source_column.column == condition.LHS[0].name
-                                and source_column.source_alias
-                                == condition.LHS[0].source
+                                source_column.column == condition.LHS.name
+                                and source_column.source_alias == condition.LHS.source
                             ):
                                 LHS_name = (
                                     source_column.source_table
@@ -205,9 +204,8 @@ class Condition:
                                     + source_column.column
                                 )
                             if (
-                                source_column.column == condition.RHS[0].name
-                                and source_column.source_alias
-                                == condition.RHS[0].source
+                                source_column.column == condition.RHS.name
+                                and source_column.source_alias == condition.RHS.source
                             ):
                                 RHS_name = (
                                     source_column.source_table
@@ -260,28 +258,25 @@ class Column:
         self.conditions_src = []
         self.meta_data = parse_query
         self.aggregate_func = ""
+        self.arguments = ""
         self.operation = ""
         operand = pp.Word(pp.alphanums + "_") | pp.Word(pp.nums)
         operator = pp.oneOf("+ - * /")
         operand_expr = operand + pp.ZeroOrMore(operator + operand)
 
         if parse_query.base_column != "":
-
-            self.source_aliases.append(parse_query.base_column[0].source)
+            self.source_aliases.append(parse_query.base_column.source)
             # Checking if any numeric operation is done on base_column
-            operand_parse = operand_expr.parseString(parse_query.base_column[0].name)
+            operand_parse = operand_expr.parseString(parse_query.base_column.name)
             if len(operand_parse) == 1:
                 self.source_columns = [
                     BaseColumn(
-                        column_name=parse_query.base_column[0].name,
-                        source_alias=parse_query.base_column[0].source,
+                        column_name=parse_query.base_column.name,
+                        source_alias=parse_query.base_column.source,
                     )
                 ]
-                self.name = parse_query.base_column[0].name
-                self.alias = parse_query.base_column[0].name
-                self.aggregate_func = parse_query.base_column[0].aggregate_func
             else:
-                self.operation = parse_query.base_column[0].name
+                self.operation = parse_query.base_column.name
                 for i in range(len(operand_parse)):
                     if i % 2 == 0:
 
@@ -289,13 +284,11 @@ class Column:
                             self.source_columns.append(
                                 BaseColumn(details=operand_parse[i])
                             )
-                            self.source_aliases.append(
-                                parse_query.base_column[0].source
-                            )
-            self.name = parse_query.base_column[0].name
-            self.alias = parse_query.base_column[0].name
-            self.aggregate_func = parse_query.base_column[0].aggregate_func
-
+                            self.source_aliases.append(parse_query.base_column.source)
+            self.name = parse_query.base_column.name
+            self.alias = parse_query.base_column.name
+            self.aggregate_func = parse_query.base_column.aggregate_func
+            self.arguments = parse_query.base_column.arguments
         # check if column has alias
         if len(parse_query.column_alias) != 0:
             self.alias = parse_query.column_alias[1]
@@ -305,7 +298,7 @@ class Column:
         if len(parse_query.case_column) != 0:
             self.case_parser(parse_query.case_column)
 
-        #post process conditions
+        # post process conditions
         for condition in self.conditions:
             condition.post_process(alias_names, alias_list)
 
@@ -330,7 +323,11 @@ class Column:
         aggregate_func_end = ""
         if self.aggregate_func != "":
             aggregate_func = self.aggregate_func + "("
-            aggregate_func_end = ")"
+            if self.arguments != "":
+                aggregate_func_end = ", " + ", ".join(self.arguments) + ")"
+            else:
+                aggregate_func_end = ")"
+            # aggregate_func_end = ")"
         if self.operation != "":
             # print(self.__str__())
             # print(self.operation)
@@ -345,6 +342,8 @@ class Column:
         elif len(self.source_columns) == 1:
             query += (
                 aggregate_func
+                + self.source_columns[0].source_table
+                + "."
                 + self.source_columns[0].column
                 + aggregate_func_end
                 + " AS "
@@ -366,14 +365,14 @@ class Column:
         # for each case within case statement
         for i in range(len(parse_query.cases)):
             current_condition = Condition(
-                parse_query.cases[i].all_condition, parse_query.cases[i].result[0].name,
+                parse_query.cases[i].all_condition, parse_query.cases[i].result.name,
             )
             self.conditions.append(current_condition)
 
         # for else case
         if parse_query.else_case != "":
             else_condition = Condition(
-                [], parse_query.else_case.base_column[0].name, condition_type="Z.else"
+                [], parse_query.else_case.base_column.name, condition_type="Z.else"
             )
             self.conditions.append(else_condition)
 
@@ -606,7 +605,6 @@ class Table:
         query = ""
         # Add create statement
         query += f"CREATE TABLE {self.database}.{self.name} AS \n"
-
         # Add column statement
         query += "SELECT "
         combine_source_tables = []
@@ -620,6 +618,7 @@ class Table:
                 end_char = ", "
             query += column.recreate_query() + end_char
         # Add from statement
+
         query += "FROM " + self.source_database + "." + self.source_table + "\n"
         # print("combine_source_columns", combine_source_tables)
         # Add join statement
@@ -671,18 +670,57 @@ def parse_create_query(query):
         | pp.CaselessKeyword("MIN")
         | pp.CaselessKeyword("MAX")
     )
+
+    multi_argu_func = (
+        pp.CaselessKeyword("CONCAT")
+        | pp.CaselessKeyword("SUBSTR")
+        | pp.CaselessKeyword("TRIM")
+        | pp.CaselessKeyword("COALESCE")
+        | pp.CaselessKeyword("CAST")
+        | pp.CaselessKeyword("DATE_FORMAT")
+        | pp.CaselessKeyword("ADD_MONTHS")
+    )
     # Base column Grammar (Column can have aggregation function)
     column = pp.Optional(
-        pp.Group(
-            special_words
-            + pp.Optional(
-                aggregate_func.setResultsName("aggregate_func") + pp.Suppress("(")
-            )
-            + pp.Optional(
-                pp.Word(pp.alphanums).setResultsName("source") + pp.Suppress(".")
-            )
-            + pp.Word(pp.alphanums + "_\"'*/-+").setResultsName("name")
-            + pp.Optional(pp.Suppress(")"))
+        pp.MatchFirst(
+            [
+                pp.Group(
+                    special_words
+                    + aggregate_func.setResultsName("aggregate_func")
+                    + pp.Suppress("(")
+                    + pp.Optional(
+                        pp.Word(pp.alphanums).setResultsName("source")
+                        + pp.Suppress(".")
+                    )
+                    + pp.Word(pp.alphanums + "_\"'*/-+").setResultsName("name")
+                    + pp.Suppress(")")
+                ),
+                pp.Group(
+                    special_words
+                    + multi_argu_func.setResultsName("aggregate_func")
+                    + pp.Suppress("(")
+                    + pp.Optional(
+                        pp.Word(pp.alphanums).setResultsName("source")
+                        + pp.Suppress(".")
+                    )
+                    + pp.Word(pp.alphanums + "_\"'*/-+").setResultsName("name")
+                    + pp.Optional(
+                        pp.Char(",")
+                        + pp.delimitedList(
+                            pp.Word(pp.alphanums + "_\"'*/-+"), delim=pp.Char(",")
+                        ).setResultsName("arguments")
+                    )
+                    + pp.Suppress(")")
+                ),
+                pp.Group(
+                    special_words
+                    + pp.Optional(
+                        pp.Word(pp.alphanums).setResultsName("source")
+                        + pp.Suppress(".")
+                    )
+                    + pp.Word(pp.alphanums + "_\"'*/-+").setResultsName("name")
+                ),
+            ]
         )
     ).setResultsName("base_column")
 
@@ -690,18 +728,22 @@ def parse_create_query(query):
 
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
     equality_condition = pp.Group(
-        column.setResultsName("LHS")
+        pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
+        + column.setResultsName("LHS")
         + (pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS"))
         + column.setResultsName("RHS")
+        + pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
         + pp.Optional(delimiter).setResultsName("delimiter")
     )
     value = special_words + pp.Word(pp.alphanums + "_'\"")
     in_condition_clause = pp.Group(
-        column.setResultsName("LHS")
+        pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
+        + column.setResultsName("LHS")
         + pp.CaselessKeyword("IN")
         + pp.Group(
             pp.Word("(") + pp.Group(pp.delimitedList(value)) + pp.Word(")")
         ).setResultsName("RHS")
+        + pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
         + pp.Optional(delimiter).setResultsName("delimiter")
     )
     condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
@@ -819,7 +861,7 @@ def parse_create_query(query):
     # if len(parsed_query.joins) > 0:
     #     print(parsed_query.joins[0])
     #     print(parsed_query.joins[0].all_condition[0])
-
+    # print(parsed_query.dump())
     table_data.meta_data = parsed_query.dump()
     table_data.new_data_entry(parsed_query)
 

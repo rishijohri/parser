@@ -6,6 +6,8 @@ add space in recreate in condition before delimiter -- Done
 add code to allow multiple joins -- Done
 
 Major Bugs:
-Add multi argument funtion support 
+Add multi argument funtion support -- Done
 add subquery support
+add union support
 add support for brackets in conditions
+add support for arithmetic operations 
