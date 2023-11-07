@@ -260,6 +260,7 @@ class Column:
         self.aggregate_func = ""
         self.arguments = ""
         self.operation = ""
+        self.case_type = False
         operand = pp.Word(pp.alphanums + "_") | pp.Word(pp.nums)
         operator = pp.oneOf("+ - * /")
         operand_expr = operand + pp.ZeroOrMore(operator + operand)
@@ -296,6 +297,7 @@ class Column:
 
         # check if column has case statement
         if len(parse_query.case_column) != 0:
+            self.case_type = True
             self.case_parser(parse_query.case_column)
 
         # post process conditions
@@ -339,7 +341,7 @@ class Column:
                 + self.alias
                 + "\n"
             )
-        elif len(self.source_columns) == 1:
+        elif len(self.source_columns) == 1 and self.case_type == False:
             query += (
                 aggregate_func
                 + self.source_columns[0].source_table
@@ -735,7 +737,7 @@ def parse_create_query(query):
         + pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
         + pp.Optional(delimiter).setResultsName("delimiter")
     )
-    value = special_words + pp.Word(pp.alphanums + "_'\"")
+    value = special_words + pp.Word(pp.alphanums + "_'-\"")
     in_condition_clause = pp.Group(
         pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
         + column.setResultsName("LHS")
@@ -967,7 +969,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = False
+    show_window = True
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(
