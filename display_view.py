@@ -11,6 +11,7 @@ def display_text(text):
     # Create the Tkinter window
     window = tk.Tk()
     window.title("Notice")
+    window.geometry("500x500") # Set the size of the window
 
     # Create the canvas and scrollbar
     canvas = tk.Canvas(window)
@@ -51,6 +52,7 @@ def display_text(text):
     window.mainloop()
 
     return result if 'result' in globals() else False
+
 
 
 if __name__ == "__main__":

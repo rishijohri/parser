@@ -5,37 +5,40 @@ from tkinter import filedialog
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from choice_view import choose_elements
 from display_view import display_text
+from typing import Tuple, List
 
 app = QApplication([])
 # Create class to store information about Column
 all_tables = []
 all_columns = []
-special_words = (
-    ~pp.CaselessKeyword("RIGHT")
-    + ~pp.CaselessKeyword("LEFT")
-    + ~pp.CaselessKeyword("INNER")
-    + ~pp.CaselessKeyword("OUTER")
-    + ~pp.CaselessKeyword("JOIN")
-    + ~pp.CaselessKeyword("ON")
-    + ~pp.CaselessKeyword("WHEN")
-    + ~pp.CaselessKeyword("THEN")
-    + ~pp.CaselessKeyword("ELSE")
-    + ~pp.CaselessKeyword("END")
-    + ~pp.CaselessKeyword("CASE")
-    + ~pp.CaselessKeyword("WHERE")
-    + ~pp.CaselessKeyword("GROUP")
-    + ~pp.CaselessKeyword("ORDER")
-    + ~pp.CaselessKeyword("LIMIT")
-    + ~pp.CaselessKeyword("FROM")
-    + ~pp.CaselessKeyword("SELECT")
-    + ~pp.CaselessKeyword("CREATE")
-    + ~pp.CaselessKeyword("TABLE")
-    + ~pp.CaselessKeyword("AS")
-    + ~pp.CaselessKeyword("IN")
-    + ~pp.CaselessKeyword("AND")
-    + ~pp.CaselessKeyword("OR")
-)
 
+special_words = pp.And(
+    [
+        ~pp.CaselessKeyword("RIGHT"),
+        ~pp.CaselessKeyword("LEFT"),
+        ~pp.CaselessKeyword("INNER"),
+        ~pp.CaselessKeyword("OUTER"),
+        ~pp.CaselessKeyword("JOIN"),
+        ~pp.CaselessKeyword("ON"),
+        ~pp.CaselessKeyword("WHEN"),
+        ~pp.CaselessKeyword("THEN"),
+        ~pp.CaselessKeyword("ELSE"),
+        ~pp.CaselessKeyword("END"),
+        ~pp.CaselessKeyword("CASE"),
+        ~pp.CaselessKeyword("WHERE"),
+        ~pp.CaselessKeyword("GROUP"),
+        ~pp.CaselessKeyword("ORDER"),
+        ~pp.CaselessKeyword("LIMIT"),
+        ~pp.CaselessKeyword("FROM"),
+        ~pp.CaselessKeyword("SELECT"),
+        ~pp.CaselessKeyword("CREATE"),
+        ~pp.CaselessKeyword("TABLE"),
+        ~pp.CaselessKeyword("AS"),
+        ~pp.CaselessKeyword("IN"),
+        ~pp.CaselessKeyword("AND"),
+        ~pp.CaselessKeyword("OR"),
+    ]
+)
 special_words_list = [
     "RIGHT",
     "LEFT",
@@ -65,7 +68,7 @@ special_words_list = [
 
 class BaseColumn:
     def __init__(self, column_name="", source_alias="", details=""):
-        self.source_table = None
+        self.source_table: str = ""
         if details == "":
             self.column = column_name
             self.source_alias = source_alias
@@ -122,20 +125,21 @@ class Condition:
 
     def extract_columns(self):
         # define grammer for matching column names
-        column_def = (
-            ~pp.Word(pp.nums) + pp.Word(pp.alphanums + "_\"'*/-+") + special_words
-        )
+        global special_words
+        special_chars = "_\"'*/-+"
+        added_def = ~pp.Word(pp.nums) + pp.Word(pp.alphanums + special_chars) or ""
+        column_def = added_def + special_words
+        assert type(column_def) == pp.And
         for condition in self.conditions:
             # print("ECC", condition)
             for token in condition:
                 if type(token) == pp.ParseResults:
                     parse_token = column_def.searchString(token.name)
                     if len(parse_token):
-                        self.source_columns.append(
-                            BaseColumn(
-                                column_name=token.name, source_alias=token.source
-                            )
+                        base_col = BaseColumn(
+                            column_name=str(token.name), source_alias=str(token.source)
                         )
+                        self.source_columns.append(base_col)
                         self.source_aliases.append(token.source)
         self.source_aliases = list(set(self.source_aliases))
 
@@ -247,11 +251,11 @@ class Condition:
 
 class Column:
     def __init__(self, parse_query, alias_names=[], alias_list=[]):
-        self.name = None
-        self.alias = None
+        self.name: str = ""
+        self.alias: str = ""
         self.source_tables = []
-        self.source_database = None
-        self.source_columns = []
+        self.source_database: str = "Default"
+        self.source_columns: list[BaseColumn] = []
         self.conditions = []
         self.results = []
         self.source_aliases = []
@@ -264,7 +268,7 @@ class Column:
         operand = pp.Word(pp.alphanums + "_") | pp.Word(pp.nums)
         operator = pp.oneOf("+ - * /")
         operand_expr = operand + pp.ZeroOrMore(operator + operand)
-
+        assert type(operand_expr) == pp.And
         if parse_query.base_column != "":
             self.source_aliases.append(parse_query.base_column.source)
             # Checking if any numeric operation is done on base_column
@@ -335,10 +339,10 @@ class Column:
             # print(self.operation)
             query += (
                 aggregate_func
-                + self.operation
+                + str(self.operation)
                 + aggregate_func_end
                 + " AS "
-                + self.alias
+                + str(self.alias)
                 + "\n"
             )
         elif len(self.source_columns) == 1 and self.case_type == False:
@@ -469,15 +473,15 @@ class Join:
 
 # Create class to store information about Table
 class Table:
-    def __init__(self, name="Unset", alias=None):
-        self.database = "Default"
-        self.source_database = "Default"
-        self.source_table = None
+    def __init__(self, name: str = "Unset", alias=None):
+        self.database: str = "Default"
+        self.source_database: str = "Default"
+        self.source_table: str = ""
         self.name = name
         self.source_alias = alias
         self.columns = []
         self.joins = []
-        self.filters = Condition([], result=[], condition_type="None")
+        self.filters = Condition([], result="NULL", condition_type="None")
         self.group_by = []
         self.order_by = []
         self.limit = None
@@ -672,7 +676,7 @@ def parse_create_query(query):
         | pp.CaselessKeyword("MIN")
         | pp.CaselessKeyword("MAX")
     )
-
+    assert type(aggregate_func) == pp.MatchFirst
     multi_argu_func = (
         pp.CaselessKeyword("CONCAT")
         | pp.CaselessKeyword("SUBSTR")
@@ -682,8 +686,10 @@ def parse_create_query(query):
         | pp.CaselessKeyword("DATE_FORMAT")
         | pp.CaselessKeyword("ADD_MONTHS")
     )
+    assert type(multi_argu_func) == pp.MatchFirst
+
     # Base column Grammar (Column can have aggregation function)
-    column = pp.Optional(
+    column: pp.Optional = pp.Optional(
         pp.MatchFirst(
             [
                 pp.Group(
@@ -709,7 +715,7 @@ def parse_create_query(query):
                     + pp.Optional(
                         pp.Char(",")
                         + pp.delimitedList(
-                            pp.Word(pp.alphanums + "_\"'*/-+"), delim=pp.Char(",")
+                            pp.Word(pp.alphanums + "_\"'*/-+"), delim=","
                         ).setResultsName("arguments")
                     )
                     + pp.Suppress(")")
@@ -730,12 +736,20 @@ def parse_create_query(query):
 
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
     equality_condition = pp.Group(
-        pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
-        + column.setResultsName("LHS")
-        + (pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS"))
-        + column.setResultsName("RHS")
-        + pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
-        + pp.Optional(delimiter).setResultsName("delimiter")
+        pp.And(
+            [
+                pp.Optional(pp.Suppress("(") | pp.Suppress(")")),
+                column.setResultsName("LHS"),
+                (
+                    pp.Word("=<>")
+                    | pp.CaselessKeyword("LIKE")
+                    | pp.CaselessKeyword("IS")
+                ),
+                column.setResultsName("RHS"),
+                pp.Optional(pp.Suppress("(") | pp.Suppress(")")),
+                pp.Optional(delimiter).setResultsName("delimiter"),
+            ]
+        )
     )
     value = special_words + pp.Word(pp.alphanums + "_'-\"")
     in_condition_clause = pp.Group(
@@ -772,11 +786,15 @@ def parse_create_query(query):
 
     # Create Clause grammer
     create_clause = pp.Group(
-        pp.CaselessKeyword("CREATE")
-        + pp.CaselessKeyword("TABLE")
-        + pp.Optional(pp.CaselessKeyword("IF NOT EXISTS"))
-        + pp.Word(pp.alphanums + "_*").setResultsName("table_name")
-        + pp.CaselessKeyword("AS")
+        pp.And(
+            [
+                pp.CaselessKeyword("CREATE"),
+                pp.CaselessKeyword("TABLE"),
+                pp.Optional(pp.CaselessKeyword("IF NOT EXISTS")),
+                pp.Word(pp.alphanums + "_*").setResultsName("table_name"),
+                pp.CaselessKeyword("AS"),
+            ]
+        )
     ).setResultsName("create")
 
     # Column Set grammar
@@ -784,7 +802,7 @@ def parse_create_query(query):
         "all_column"
     )
 
-    columns = pp.delimitedList(all_column, delim=pp.Char(",")).setResultsName("columns")
+    columns = pp.delimitedList(all_column, delim=",").setResultsName("columns")
 
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
 
@@ -795,10 +813,7 @@ def parse_create_query(query):
 
     # Where clause grammer
     where_clause = pp.CaselessKeyword("WHERE") + pp.Group(
-        pp.delimitedList(
-            all_conditions,
-            delim=pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")]),
-        )
+        pp.delimitedList(all_conditions)
     )
 
     # Join clause grammer
@@ -828,24 +843,27 @@ def parse_create_query(query):
     # print('eqsearch ', equality_condition.searchString('column1 = column2').dump())
     # print('insearch ', in_condition_clause.searchString('column1 IN (column4, \'5\', 6)').dump())
     # print(all_conditions.searchString('WHEN column1 IN (column2, column3) THEN column4'))
-    query_parser = (
-        create_clause
-        + pp.Optional(pp.Literal("("))
-        + column_clause
-        + table_grammer
-        + pp.Optional(where_clause).setResultsName("wheres1")
-        + pp.Optional(pp.Literal(";"))
-        + pp.Optional(pp.OneOrMore(join_clause)).setResultsName("joins")
-        + pp.Optional(pp.Literal(";"))
-        + pp.Optional(where_clause).setResultsName("wheres2")
-        + pp.Optional(pp.Literal(";"))
-        + pp.Optional(group_clause).setResultsName("groups")
-        + pp.Optional(pp.Literal(";"))
-        + pp.Optional(order_clause).setResultsName("orders")
-        + pp.Optional(pp.Literal(";"))
-        + pp.Optional(limit_clause)
-        + pp.Optional(pp.Literal(")"))
-        + pp.Optional(pp.Literal(";"))
+    assert type(create_clause) == pp.Group and create_clause is not None
+    query_parser = pp.And(
+        [
+            create_clause,
+            pp.Optional(pp.Literal("(")),
+            column_clause,
+            table_grammer,
+            pp.Optional(where_clause).setResultsName("wheres1"),
+            pp.Optional(pp.Literal(";")),
+            pp.Optional(pp.OneOrMore(join_clause)).setResultsName("joins"),
+            pp.Optional(pp.Literal(";")),
+            pp.Optional(where_clause).setResultsName("wheres2"),
+            pp.Optional(pp.Literal(";")),
+            pp.Optional(group_clause).setResultsName("groups"),
+            pp.Optional(pp.Literal(";")),
+            pp.Optional(order_clause).setResultsName("orders"),
+            pp.Optional(pp.Literal(";")),
+            pp.Optional(limit_clause),
+            pp.Optional(pp.Literal(")")),
+            pp.Optional(pp.Literal(";")),
+        ]
     )
     parsed_query = query_parser.parseString(query)
     # print(parsed_query)
@@ -870,10 +888,12 @@ def parse_create_query(query):
     return table_data
 
 
-def get_follow_sources(table_name, column_names=[], tables=[]):
+def get_follow_sources(
+    table_name, column_names=[], tables=[]
+) -> Tuple[list, list, Table, list]:
     source_columns = []
     source_tables = []
-    match_table = None
+    match_table = Table()
     match_column = []
     for table in tables:
         if table.name == table_name:
@@ -913,6 +933,7 @@ def get_definition(table_name, column_name, tables, print_result=False):
     source_columns, source_tables, current_table, current_columns = get_follow_sources(
         table_name, column_name, tables
     )
+    assert current_table.name != "Unset"
 
     table_recreate = current_table.recreate_query(current_columns)
     table_recreates.append(table_recreate)
@@ -969,7 +990,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = True
+    show_window = False
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(
