@@ -11,3 +11,4 @@ add subquery support
 add union support
 add support for brackets in conditions -- Half Done (Won't fail but wont record bracket either)
 add support for arithmetic operations 
+add support for Brackets in conditions
