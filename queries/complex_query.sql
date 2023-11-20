@@ -21,9 +21,6 @@ WHERE column1 = 1
 
 
 CREATE TABLE new_table AS
-
-
-
 SELECT coalesce(b.column1, 0),
     a.column1+100 as whatever,
     CASE

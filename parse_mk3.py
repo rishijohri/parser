@@ -248,6 +248,16 @@ class Condition:
             # + f"\tCondition Source aliases: {self.source_aliases}\n"
         )
 
+class ConditionGroup:
+    def __init__(self, parse_query, result="NULL"):
+        """
+        condition_type = "Z.else" | "A.equality" | "multiple"
+        """
+        self.conditions = []
+        self.results = result
+        self.source_columns = []
+        self.source_aliases = []
+
 
 class Column:
     def __init__(self, parse_query, alias_names=[], alias_list=[]):
@@ -676,7 +686,7 @@ def parse_create_query(query):
         | pp.CaselessKeyword("MIN")
         | pp.CaselessKeyword("MAX")
     )
-    assert type(aggregate_func) == pp.MatchFirst
+    assert isinstance(aggregate_func, pp.ParserElement)
     multi_argu_func = (
         pp.CaselessKeyword("CONCAT")
         | pp.CaselessKeyword("SUBSTR")
@@ -686,10 +696,10 @@ def parse_create_query(query):
         | pp.CaselessKeyword("DATE_FORMAT")
         | pp.CaselessKeyword("ADD_MONTHS")
     )
-    assert type(multi_argu_func) == pp.MatchFirst
+    assert isinstance(multi_argu_func, pp.ParserElement)
 
     # Base column Grammar (Column can have aggregation function)
-    column: pp.Optional = pp.Optional(
+    column: pp.ParserElement = pp.Optional(
         pp.MatchFirst(
             [
                 pp.Group(
@@ -738,7 +748,6 @@ def parse_create_query(query):
     equality_condition = pp.Group(
         pp.And(
             [
-                pp.Optional(pp.Suppress("(") | pp.Suppress(")")),
                 column.setResultsName("LHS"),
                 (
                     pp.Word("=<>")
@@ -746,25 +755,37 @@ def parse_create_query(query):
                     | pp.CaselessKeyword("IS")
                 ),
                 column.setResultsName("RHS"),
-                pp.Optional(pp.Suppress("(") | pp.Suppress(")")),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]
         )
     )
-    value = special_words + pp.Word(pp.alphanums + "_'-\"")
+    value = pp.And([special_words, pp.Word(pp.alphanums + "_'-\"")])
     in_condition_clause = pp.Group(
-        pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
-        + column.setResultsName("LHS")
-        + pp.CaselessKeyword("IN")
-        + pp.Group(
-            pp.Word("(") + pp.Group(pp.delimitedList(value)) + pp.Word(")")
-        ).setResultsName("RHS")
-        + pp.Optional(pp.Suppress("(") | pp.Suppress(")"))
-        + pp.Optional(delimiter).setResultsName("delimiter")
+        pp.And(
+            [
+                column.setResultsName("LHS"),
+                pp.CaselessKeyword("IN"),
+                pp.Group(
+                    pp.And(
+                        [pp.Word("("), pp.Group(pp.delimitedList(value)), pp.Word(")")]
+                    )
+                ).setResultsName("RHS"),
+                pp.Optional(delimiter).setResultsName("delimiter"),
+            ]
+        )
     )
     condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
-
-    all_conditions = pp.ZeroOrMore(condition_clause).setResultsName("all_condition")
+    condition_group = pp.Group(
+                        pp.And(
+                            [
+                                pp.Literal("("),
+                                pp.ZeroOrMore(condition_clause),
+                                pp.Literal(")"),
+                                pp.Optional(delimiter).setResultsName("delimiter"),
+                            ]
+                        )).setResultsName("condition_group")
+    
+    all_conditions = pp.ZeroOrMore(condition_group).setResultsName("all_condition")
 
     case_column = pp.Group(
         pp.Optional(
@@ -865,8 +886,9 @@ def parse_create_query(query):
             pp.Optional(pp.Literal(";")),
         ]
     )
+    print('begin parse ', query)
     parsed_query = query_parser.parseString(query)
-    # print(parsed_query)
+    print(parsed_query)
     # Store the parsed value in Corresponding class
     table_data = Table()
     # k = 0
@@ -940,6 +962,8 @@ def get_definition(table_name, column_name, tables, print_result=False):
 
     while len(source_tables) > 0:
         table_name = source_tables.pop()
+        if table_name == "Unset":
+            continue
         column_names = []
         for column in source_columns:
             if column.source_table == table_name:
@@ -1029,14 +1053,12 @@ if __name__ == "__main__":
                     f.write(definition_str)
     else:
         tables = []
-        file_path = "queries/complex_Query.sql"
+        file_path = "queries/single_query.sql"
         with open(file_path, "r"):
+            print("reading file")
             tables = read_script(file_path)
-        new_table = tables[2]
-        # print(new_table.meta_data)
-        # print(new_table.columns[3])
-        table_name = "new_table"
-        column_name = ["col3"]
+        table_name = "source2"
+        column_name = ["column45"]
         definition, definition_str = get_definition(table_name, column_name, tables)
         print(definition_str)
 
