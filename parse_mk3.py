@@ -129,7 +129,7 @@ class Condition:
         """
         # define grammer for matching column names
         global special_words
-        special_chars = "_\"'*/-+"
+        special_chars = "_*/-+"
         added_def = ~pp.Word(pp.nums) + pp.Word(pp.alphanums + special_chars) or ""
         column_def = added_def + special_words
         assert type(column_def) == pp.And
@@ -717,8 +717,12 @@ class Table:
                 query += "\n"
 
         # Add where statement
-        if isinstance(self.filters, Condition) and self.filters.conditions != []:
-            query += "WHERE " + self.filters.recreate_query(else_case=False) + "\n"
+        if isinstance(self.filters, list):
+            if len(self.filters) > 0:
+                query += "WHERE "
+            for where_filter in self.filters:
+                query += where_filter.recreate_query()
+            # query += "WHERE " + self.filters.recreate_query(else_case=False) + "\n"
 
         return query
 
@@ -1086,7 +1090,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = True
+    show_window = False
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(

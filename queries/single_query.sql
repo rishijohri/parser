@@ -6,7 +6,6 @@ SELECT column1,
     case when (column4=3 and column4=1) or column1=3  then 1
     when column4=4 then 2
     else 3 end as column45,
-    column45,
     column5
 from sdb.source_original
 LEFT JOIN source2 b on a.column1=b.column1 and a.column2=b.column2
