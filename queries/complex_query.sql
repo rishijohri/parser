@@ -8,7 +8,7 @@ SELECT column1,
 from sdb.source_original;
 
 
-CREATE TABLE source2 AS
+CREATE TABLE sdb.source2 AS
 SELECT column1,
     column2,
     column3,
@@ -35,8 +35,8 @@ SELECT coalesce(b.column1, 0),
         else 0
     end as col4
 FROM source a
-LEFT JOIN source2 b ON (a.column1 = b.column1)
-LEFT JOIN source3 c on a.column1 = c.column1
+LEFT JOIN sdb.source2 b ON (a.column1 = b.column1)
+LEFT JOIN sdb.source3 c on a.column1 = c.column1
 WHERE column1 = 1
     AND c.column2 = 2
     and b.column3 in (1,2,3)

@@ -124,6 +124,9 @@ class Condition:
         self.extract_columns()
 
     def extract_columns(self):
+        """
+        Extracts the source columns and source table aliases from the condition
+        """
         # define grammer for matching column names
         global special_words
         special_chars = "_\"'*/-+"
@@ -248,15 +251,69 @@ class Condition:
             # + f"\tCondition Source aliases: {self.source_aliases}\n"
         )
 
+
 class ConditionGroup:
-    def __init__(self, parse_query, result="NULL"):
+    def __init__(self, parse_query, result="NULL", condition_type="Normal"):
         """
         condition_type = "Z.else" | "A.equality" | "multiple"
         """
-        self.conditions = []
         self.results = result
+        self.condition_type = condition_type
         self.source_columns = []
         self.source_aliases = []
+        self.meta_data = parse_query
+        self.delimiter: str = parse_query.delimiter or ""
+        # print(self.delimiter)
+
+        self.conditions = Condition(parse_query.condition_group)
+        # print(self.conditions)
+
+    def post_process(self, alias_names, alias_list):
+        self.conditions.post_process(alias_names, alias_list)
+        self.source_columns = self.conditions.source_columns
+        self.source_aliases = self.conditions.source_aliases
+
+    def extract_columns(self):
+        """
+        Extracts the source columns and source table aliases from the condition
+        """
+        # define grammer for matching column names
+        self.conditions.extract_columns()
+        self.source_columns = self.conditions.source_columns
+        self.source_aliases = self.conditions.source_aliases
+
+    def recreate_query(self, source_columns=[], else_case=True):
+        """
+        Recreate the query for the condition
+        """
+        query = ""
+        if source_columns == []:
+            source_columns = self.source_columns
+        # print('condition ', len(self.conditions), self.condition_type)
+        if len(self.source_columns) == 0:
+            if else_case and self.results != "NULL":
+                query += "ELSE " + self.results + "\n"
+        else:
+            query += "("
+            query += self.conditions.recreate_query(source_columns, else_case)
+            query += ")\n"
+            query += self.delimiter + " "
+            if self.results != "NULL":
+                query += "THEN " + self.results + "\n "
+        return query
+
+    def __str__(self):
+        condition_str = "\n"
+        source_columns_str = "\n"
+        for src_col in self.source_columns:
+            condition_str += "\t\t" + str(src_col) + " \n"
+        return (
+            f" \n\tCONDITION GROUP\n "
+            + f"\tConditions: {self.conditions}\n "
+            + f"\tCondition Results: {self.results}\n"
+            + f"\tSource columns: {source_columns_str}\n"
+            # + f"\tCondition Source aliases: {self.source_aliases}\n"
+        )
 
 
 class Column:
@@ -379,11 +436,13 @@ class Column:
 
     def case_parser(self, parse_query):
         # for each case within case statement
-        for i in range(len(parse_query.cases)):
-            current_condition = Condition(
-                parse_query.cases[i].all_condition, parse_query.cases[i].result.name,
-            )
-            self.conditions.append(current_condition)
+        for case in parse_query.cases:
+            current_conditions = []
+            for condition_grp in case.all_condition:
+                current_condition = ConditionGroup(parse_query=condition_grp,)
+                current_conditions.append(current_condition)
+            current_conditions[-1].results = case.result.name
+            self.conditions.extend(current_conditions)
 
         # for else case
         if parse_query.else_case != "":
@@ -453,20 +512,26 @@ class Column:
 class Join:
     def __init__(self, table, join_type, condition):
         self.table = table[0]
+        self.condition = []
         if len(table) > 1:
             self.alias = table[1]
         else:
             self.alias = table[0]
         self.join_type = join_type
-
-        self.condition = Condition(condition)
-        self.source_columns = self.condition.source_columns
-        self.source_aliases = self.condition.source_aliases
+        for condition_grp in condition:
+            self.condition.append(ConditionGroup(condition_grp))
+        # self.condition = Condition(condition)
+        self.source_columns = []
+        self.source_aliases = []
 
     def post_process(self, alias_names, alias_list):
-        self.condition.post_process(alias_names, alias_list)
-        self.source_columns = self.condition.source_columns
-        self.source_aliases = self.condition.source_aliases
+        for condition in self.condition:
+            condition.post_process(alias_names, alias_list)
+
+        for condition in self.condition:
+            condition.post_process(alias_names, alias_list)
+            self.source_columns.extend(condition.source_columns)
+            self.source_aliases.extend(condition.source_aliases)
 
     def __str__(self):
         source_column_str = "\n"
@@ -491,7 +556,8 @@ class Table:
         self.source_alias = alias
         self.columns = []
         self.joins = []
-        self.filters = Condition([], result="NULL", condition_type="None")
+        # self.filters = Condition([], result="NULL", condition_type="None")
+        self.filters: list = []
         self.group_by = []
         self.order_by = []
         self.limit = None
@@ -606,11 +672,15 @@ class Table:
         elif parsed_query.wheres1 != "":
             filter_parse = parsed_query.wheres1
         if filter_parse != []:
-            self.filters = Condition(filter_parse[1])
+            for condition_grp in filter_parse[0].all_condition:
+                # print("condition_grp ", condition_grp)
+                where_filter = ConditionGroup(condition_grp)
+                self.filters.append(where_filter)
+            # self.filters = Condition(filter_parse[1])
 
         # post process filters
-        if isinstance(self.filters, Condition):
-            self.filters.post_process(self.alias_names, self.alias_list)
+        for where_filter in self.filters:
+            where_filter.post_process(self.alias_names, self.alias_list)
         # post process columns
         self.post_process_columns()
 
@@ -641,14 +711,10 @@ class Table:
         for join in self.joins:
             # print(join.table)
             if join.table in combine_source_tables:
-                query += (
-                    join.join_type
-                    + " "
-                    + join.table
-                    + " ON "
-                    + join.condition.recreate_query()
-                    + "\n"
-                )
+                query += join.join_type + " " + join.table + " ON "
+                for condition in join.condition:
+                    query += condition.recreate_query()
+                query += "\n"
 
         # Add where statement
         if isinstance(self.filters, Condition) and self.filters.conditions != []:
@@ -743,7 +809,6 @@ def parse_create_query(query):
     ).setResultsName("base_column")
 
     # Conditions grammer
-
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
     equality_condition = pp.Group(
         pp.And(
@@ -767,7 +832,11 @@ def parse_create_query(query):
                 pp.CaselessKeyword("IN"),
                 pp.Group(
                     pp.And(
-                        [pp.Word("("), pp.Group(pp.delimitedList(value)), pp.Word(")")]
+                        [
+                            pp.Literal("("),
+                            pp.Group(pp.delimitedList(value)),
+                            pp.Literal(")"),
+                        ]
                     )
                 ).setResultsName("RHS"),
                 pp.Optional(delimiter).setResultsName("delimiter"),
@@ -776,16 +845,20 @@ def parse_create_query(query):
     )
     condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
     condition_group = pp.Group(
-                        pp.And(
-                            [
-                                pp.Literal("("),
-                                pp.ZeroOrMore(condition_clause),
-                                pp.Literal(")"),
-                                pp.Optional(delimiter).setResultsName("delimiter"),
-                            ]
-                        )).setResultsName("condition_group")
-    
-    all_conditions = pp.ZeroOrMore(condition_group).setResultsName("all_condition")
+        pp.And(
+            [
+                (
+                    pp.Literal("(")
+                    + pp.OneOrMore(condition_clause).setResultsName("condition_group")
+                    + pp.Literal(")")
+                )
+                | pp.OneOrMore(condition_clause).setResultsName("condition_group"),
+                pp.Optional(delimiter).setResultsName("delimiter"),
+            ]
+        )
+    )
+
+    all_conditions = pp.OneOrMore(condition_group).setResultsName("all_condition")
 
     case_column = pp.Group(
         pp.Optional(
@@ -812,7 +885,7 @@ def parse_create_query(query):
                 pp.CaselessKeyword("CREATE"),
                 pp.CaselessKeyword("TABLE"),
                 pp.Optional(pp.CaselessKeyword("IF NOT EXISTS")),
-                pp.Word(pp.alphanums + "_*").setResultsName("table_name"),
+                pp.Word(pp.alphanums + "_.*").setResultsName("table_name"),
                 pp.CaselessKeyword("AS"),
             ]
         )
@@ -833,9 +906,7 @@ def parse_create_query(query):
     )
 
     # Where clause grammer
-    where_clause = pp.CaselessKeyword("WHERE") + pp.Group(
-        pp.delimitedList(all_conditions)
-    )
+    where_clause = pp.Group(pp.CaselessKeyword("WHERE") + all_conditions)
 
     # Join clause grammer
     join_clause = pp.Group(
@@ -886,9 +957,9 @@ def parse_create_query(query):
             pp.Optional(pp.Literal(";")),
         ]
     )
-    print('begin parse ', query)
+    # print("begin parse ", query)
     parsed_query = query_parser.parseString(query)
-    print(parsed_query)
+    # print("Result ", parsed_query.wheres1[0].all_condition)
     # Store the parsed value in Corresponding class
     table_data = Table()
     # k = 0
@@ -918,17 +989,19 @@ def get_follow_sources(
     match_table = Table()
     match_column = []
     for table in tables:
-        if table.name == table_name:
+        if (
+            table.name == table_name
+            or (table.source_database + "." + table.name) == table_name
+        ):
             for column in table.columns:
                 if column.name in column_names:
                     match_table = table
                     match_column.append(column)
-                    for source_column in column.source_columns:
-                        source_columns.append(source_column)
+                    source_columns.extend(column.source_columns)
 
                     # Get Filter source columns
-                    for source_column in table.filters.source_columns:
-                        source_columns.append(source_column)
+                    for where_filter in table.filters:
+                        source_columns.extend(where_filter.source_columns)
 
                     # distinct tables used
                     for source_column in source_columns:
@@ -955,15 +1028,14 @@ def get_definition(table_name, column_name, tables, print_result=False):
     source_columns, source_tables, current_table, current_columns = get_follow_sources(
         table_name, column_name, tables
     )
-    assert current_table.name != "Unset"
+    assert current_table.name != "Default.Unset"
 
     table_recreate = current_table.recreate_query(current_columns)
     table_recreates.append(table_recreate)
 
     while len(source_tables) > 0:
         table_name = source_tables.pop()
-        if table_name == "Unset":
-            continue
+        print("table_name ", table_name)
         column_names = []
         for column in source_columns:
             if column.source_table == table_name:
@@ -976,8 +1048,8 @@ def get_definition(table_name, column_name, tables, print_result=False):
             current_columns,
         ) = get_follow_sources(table_name, column_names, tables)
         # print(current_table)
-        if current_table != None:
-
+        if current_table != None and current_table.name != "Unset":
+            print("current_table ", current_table.name)
             table_recreate = current_table.recreate_query(current_columns)
             for table in source_tables_new:
                 if table not in source_tables:
@@ -1014,7 +1086,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = False
+    show_window = True
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(
@@ -1049,7 +1121,7 @@ if __name__ == "__main__":
             to_print = display_text(definition_str)
             if to_print:
                 # write defintion string in file
-                with open("results/definition.txt", "w") as f:
+                with open("results/definition.hql", "w") as f:
                     f.write(definition_str)
     else:
         tables = []
