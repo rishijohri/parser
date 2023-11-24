@@ -138,7 +138,7 @@ class Condition:
             for token in condition:
                 if type(token) == pp.ParseResults:
                     parse_token = column_def.searchString(token.name)
-                    if len(parse_token):
+                    if len(parse_token) and parse_token[0][0] == token.name:
                         base_col = BaseColumn(
                             column_name=str(token.name), source_alias=str(token.source)
                         )
@@ -155,6 +155,21 @@ class Condition:
                 source_column.source_table = alias_names[source_column.source_alias]
             elif source_column.source_alias == "":
                 source_column.source_table = alias_names[alias_list[0]]
+
+    def recreate_column(self, parse_query, source_columns=[]):
+        column_name = parse_query.name
+        for source_column in source_columns:
+            if source_column.column == column_name:
+                column_name = source_column.source_table + "." + source_column.column
+                break;
+        arguments = parse_query.arguments
+        if parse_query.arguments != "":
+            arguments = ', ' + ', '.join(parse_query.arguments)
+        if parse_query.aggregate_func:
+            return parse_query.aggregate_func + "(" +column_name + arguments + ")"
+        else:
+            return column_name
+        
 
     def recreate_query(self, source_columns=[], else_case=True):
         """
@@ -174,17 +189,7 @@ class Condition:
                     query += "ELSE " + condition.results + " "
                 else:
                     if condition[1].upper() == "IN":
-                        LHS_name = condition.LHS.name
-                        for source_column in source_columns:
-                            if (
-                                source_column.column == condition.LHS.name
-                                and source_column.source_alias == condition.LHS.source
-                            ):
-                                LHS_name = (
-                                    source_column.source_table
-                                    + "."
-                                    + source_column.column
-                                )
+                        LHS_name = self.recreate_column(condition.LHS, source_columns)
                         # RHS[0] and RHS[2] are ( and )
                         RHS_name = ",".join(condition.RHS[1])
                         query += (
@@ -198,27 +203,8 @@ class Condition:
                             + " "
                         )
                     else:
-                        LHS_name = condition.LHS.name
-                        RHS_name = condition.RHS.name
-                        for source_column in source_columns:
-                            if (
-                                source_column.column == condition.LHS.name
-                                and source_column.source_alias == condition.LHS.source
-                            ):
-                                LHS_name = (
-                                    source_column.source_table
-                                    + "."
-                                    + source_column.column
-                                )
-                            if (
-                                source_column.column == condition.RHS.name
-                                and source_column.source_alias == condition.RHS.source
-                            ):
-                                RHS_name = (
-                                    source_column.source_table
-                                    + "."
-                                    + source_column.column
-                                )
+                        LHS_name = self.recreate_column(condition.LHS, source_columns)
+                        RHS_name = self.recreate_column(condition.RHS, source_columns)
                         query += (
                             LHS_name
                             + " "
@@ -231,7 +217,6 @@ class Condition:
                         )
             if self.results != "NULL":
                 query += "THEN " + self.results + "\n "
-
         return query
 
     def __str__(self):
@@ -1090,7 +1075,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = False
+    show_window = True
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(

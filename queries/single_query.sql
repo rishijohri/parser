@@ -1,9 +1,9 @@
 CREATE TABLE sdb.source2 AS
-SELECT column1,
+SELECT a.column1,
     column2,
     column3,
     column4,
-    case when (column4=3 and column4=1) or column1=3  then 1
+    case when (b.column4='OK' and column4=1) or substr(column1, 1, 1)=3  then 1
     when column4=4 then 2
     else 3 end as column45,
     column5
