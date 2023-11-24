@@ -159,7 +159,9 @@ class Condition:
     def recreate_column(self, parse_query, source_columns=[]):
         column_name = parse_query.name
         for source_column in source_columns:
-            if source_column.column == column_name:
+            if (source_column.column == column_name and 
+            ((parse_query.source!='' and source_column.source_alias == parse_query.source)
+            or parse_query.source=='')):
                 column_name = source_column.source_table + "." + source_column.column
                 break;
         arguments = parse_query.arguments
@@ -170,7 +172,6 @@ class Condition:
         else:
             return column_name
         
-
     def recreate_query(self, source_columns=[], else_case=True):
         """
         Recreate the query for the condition
@@ -203,8 +204,10 @@ class Condition:
                             + " "
                         )
                     else:
+                        print(condition.LHS, condition.RHS)
                         LHS_name = self.recreate_column(condition.LHS, source_columns)
                         RHS_name = self.recreate_column(condition.RHS, source_columns)
+                        print(LHS_name, RHS_name)
                         query += (
                             LHS_name
                             + " "
@@ -646,6 +649,7 @@ class Table:
             )
 
         # Post porcess Joins
+        print(self.alias_names, self.alias_list)
         for join in self.joins:
             join.post_process(self.alias_names, self.alias_list)
         # Parse Group by
@@ -1039,6 +1043,7 @@ def get_definition(table_name, column_name, tables, print_result=False):
         # print(current_table)
         if current_table != None and current_table.name != "Unset":
             print("current_table ", current_table.name)
+            print('source_tables_new ', source_tables_new)
             table_recreate = current_table.recreate_query(current_columns)
             for table in source_tables_new:
                 if table not in source_tables:
@@ -1075,7 +1080,7 @@ def read_script(file_path):
 
 # Run if this file is run directly
 if __name__ == "__main__":
-    show_window = True
+    show_window = False
     if show_window:
         display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
         file_path, _ = QFileDialog.getOpenFileName(
