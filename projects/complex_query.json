@@ -1,0 +1,15 @@
+{
+    "variables": [
+         {
+            "name": "ratio1",
+            "numerator": "whatever",
+            "denominator": "col3"
+        },
+        {
+            "name": "ratio2",
+            "numerator": "col3",
+            "denominator": "col4"
+        }
+    ]
+    
+}

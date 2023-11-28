@@ -1,0 +1,9 @@
+CREATE MEMBER CURRENTCUBE.[Measures].[Ratio1]
+ AS [Measures].[whatever] / [Measures].[col3], 
+FORMAT_STRING = "Percent", 
+VISIBLE = 1 ,  ASSOCIATED_MEASURE_GROUP = 'new_table'  ;
+
+CREATE MEMBER CURRENTCUBE.[Measures].[Ratio2]
+ AS [Measures].[col4] / [Measures].[col3], 
+FORMAT_STRING = "Percent", 
+VISIBLE = 1 ,  ASSOCIATED_MEASURE_GROUP = 'new_table'  ;

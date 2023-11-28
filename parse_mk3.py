@@ -1,10 +1,9 @@
 import pyparsing as pp
 import os
 import pprint
-from tkinter import filedialog
 from PyQt5.QtWidgets import QApplication, QFileDialog
-from choice_view import choose_elements
-from display_view import display_text
+from display_view.choice_view import choose_elements
+from display_view.display_view import display_text
 from typing import Tuple, List
 
 app = QApplication([])
