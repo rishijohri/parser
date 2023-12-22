@@ -1,0 +1,395 @@
+{
+    "column_def": {
+        "definition": [{
+            "name": ["column5"]
+        }]
+    },
+    "columns": [{
+            "column_alias": [
+                ["AS", "whatever"]
+            ],
+            "definition": [{
+                "name": ["column1"],
+                "source": ["a"]
+            }]
+        },
+        {
+            "definition": [{
+                "name": ["column2"]
+            }]
+        },
+        {
+            "definition": [{
+                "name": ["column3"]
+            }]
+        },
+        {
+            "definition": [{
+                "name": ["column4"]
+            }]
+        },
+        {
+            "case_column": {
+                "case": {
+                    "condition_group": [{
+                        "LHS": [{
+                            "name": ["column4"]
+                        }],
+                        "RHS": [{
+                            "name": ["4"]
+                        }],
+                        "comparator": "="
+                    }],
+                    "definition": [{
+                        "name": ["2"]
+                    }],
+                    "result": [{
+                        "name": ["2"]
+                    }]
+                },
+                "cases": [{
+                        "case_column": {
+                            "case": {
+                                "condition_group": [{
+                                    "LHS": [{
+                                        "name": ["column4"]
+                                    }],
+                                    "RHS": [{
+                                        "name": ["3"]
+                                    }],
+                                    "comparator": "="
+                                }],
+                                "definition": [{
+                                    "name": ["2"]
+                                }],
+                                "result": [{
+                                    "name": ["2"]
+                                }]
+                            },
+                            "cases": [{
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["1"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["1"]
+                                    }],
+                                    "result": [{
+                                        "name": ["1"]
+                                    }]
+                                },
+                                {
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["2"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["2"]
+                                    }],
+                                    "result": [{
+                                        "name": ["2"]
+                                    }]
+                                },
+                                {
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["3"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["2"]
+                                    }],
+                                    "result": [{
+                                        "name": ["2"]
+                                    }]
+                                }
+                            ],
+                            "else_case": {
+                                "definition": [{
+                                    "name": ["4"]
+                                }]
+                            }
+                        },
+                        "condition_group": [{
+                            "LHS": [{
+                                "name": ["column4"],
+                                "source": ["b"]
+                            }],
+                            "RHS": [{
+                                "name": ["OK"]
+                            }],
+                            "comparator": "="
+                        }],
+                        "result": [{
+                            "case": {
+                                "condition_group": [{
+                                    "LHS": [{
+                                        "name": ["column4"]
+                                    }],
+                                    "RHS": [{
+                                        "name": ["3"]
+                                    }],
+                                    "comparator": "="
+                                }],
+                                "definition": [{
+                                    "name": ["2"]
+                                }],
+                                "result": [{
+                                    "name": ["2"]
+                                }]
+                            },
+                            "cases": [{
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["1"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["1"]
+                                    }],
+                                    "result": [{
+                                        "name": ["1"]
+                                    }]
+                                },
+                                {
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["2"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["2"]
+                                    }],
+                                    "result": [{
+                                        "name": ["2"]
+                                    }]
+                                },
+                                {
+                                    "condition_group": [{
+                                        "LHS": [{
+                                            "name": ["column4"]
+                                        }],
+                                        "RHS": [{
+                                            "name": ["3"]
+                                        }],
+                                        "comparator": "="
+                                    }],
+                                    "definition": [{
+                                        "name": ["2"]
+                                    }],
+                                    "result": [{
+                                        "name": ["2"]
+                                    }]
+                                }
+                            ],
+                            "else_case": {
+                                "definition": [{
+                                    "name": ["4"]
+                                }]
+                            }
+                        }]
+                    },
+                    {
+                        "condition_group": [{
+                            "LHS": [{
+                                "name": ["column4"]
+                            }],
+                            "RHS": [{
+                                "name": ["4"]
+                            }],
+                            "comparator": "="
+                        }],
+                        "definition": [{
+                            "name": ["2"]
+                        }],
+                        "result": [{
+                            "name": ["2"]
+                        }]
+                    }
+                ],
+                "else_case": {
+                    "definition": [{
+                        "name": ["3"]
+                    }]
+                }
+            },
+            "column_alias": [
+                ["AS", "column45"]
+            ]
+        },
+        {
+            "definition": [{
+                "name": ["column5"]
+            }]
+        }
+    ],
+    "create": {
+        "source": ["sdb"],
+        "table_name": ["source2"]
+    },
+    "joins": [{
+            "condition_group": [{
+                    "LHS": [{
+                        "name": ["column1"],
+                        "source": ["a"]
+                    }],
+                    "RHS": [{
+                        "name": ["column56"],
+                        "source": ["b"]
+                    }],
+                    "comparator": "=",
+                    "delimiter": "AND"
+                },
+                {
+                    "LHS": [{
+                        "name": ["column2"],
+                        "source": ["a"]
+                    }],
+                    "RHS": [{
+                        "name": ["column2"],
+                        "source": ["b"]
+                    }],
+                    "comparator": "="
+                }
+            ],
+            "join_type": "LEFT JOIN",
+            "table_def": {
+                "table_alias": ["b"],
+                "table_name": ["source3"]
+            }
+        },
+        {
+            "condition_group": [{
+                "LHS": [{
+                    "name": ["column1"],
+                    "source": ["a"]
+                }],
+                "RHS": [{
+                    "name": ["column1"],
+                    "source": ["c"]
+                }],
+                "comparator": "="
+            }],
+            "join_type": "JOIN",
+            "sub_query": {
+                "column_def": {
+                    "definition": [{
+                        "name": ["column3"]
+                    }]
+                },
+                "columns": [{
+                        "definition": [{
+                            "name": ["column1"]
+                        }]
+                    },
+                    {
+                        "definition": [{
+                            "name": ["column2"]
+                        }]
+                    },
+                    {
+                        "definition": [{
+                            "name": ["column3"]
+                        }]
+                    }
+                ],
+                "table_alias": ["c"],
+                "table_def": {
+                    "source": ["sourc4"],
+                    "table_name": ["table1"]
+                }
+            }
+        }
+    ],
+    "table_def": {
+        "source": ["sdb"],
+        "table_alias": ["a"],
+        "table_name": ["source_original"]
+    },
+    "wheres2": [{
+        "condition_group": [{
+                "condition_group": [{
+                        "LHS": [{
+                            "name": ["column1"]
+                        }],
+                        "RHS": ["(",
+                            ["1", "2", "3"],
+                            ")"
+                        ],
+                        "comparator": "IN",
+                        "delimiter": "AND"
+                    },
+                    {
+                        "condition_group": [{
+                                "LHS": [{
+                                    "name": ["column2"],
+                                    "source": ["b"]
+                                }],
+                                "RHS": [{
+                                    "name": ["2"]
+                                }],
+                                "comparator": "=",
+                                "delimiter": "OR"
+                            },
+                            {
+                                "LHS": [{
+                                    "name": ["colym6"]
+                                }],
+                                "RHS": [{
+                                    "name": ["7"]
+                                }],
+                                "comparator": "<>"
+                            }
+                        ]
+                    }
+                ],
+                "delimiter": "OR"
+            },
+            {
+                "condition_group": [{
+                    "LHS": [{
+                        "name": ["column1"]
+                    }],
+                    "RHS": [{
+                        "name": ["3"]
+                    }],
+                    "comparator": "="
+                }],
+                "delimiter": "OR"
+            },
+            {
+                "condition_group": [{
+                    "LHS": [{
+                        "name": ["column3"]
+                    }],
+                    "RHS": [{
+                        "name": ["2"]
+                    }],
+                    "comparator": "="
+                }]
+            }
+        ]
+    }]
+}
