@@ -137,6 +137,8 @@ def parse_create_query(query):
         )
     )
     in_comparator = pp.CaselessKeyword("IN") | pp.CaselessKeyword("NOT IN")
+    assert isinstance(in_comparator, pp.ParserElement)
+    
     in_condition_clause = pp.Group(
         pp.And(
             [
