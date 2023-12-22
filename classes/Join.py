@@ -38,6 +38,7 @@ class Join:
         query += "( SELECT "
         for column in self.sub_query.columns:
             query += column.definition[0].name[0] + ", "
+        query = query[:-2]
         query += " FROM " + self.database + "." + self.name
         if self.sub_query_condition != None:
             query += " WHERE " + self.sub_query_condition.recreate_query() + " ) "

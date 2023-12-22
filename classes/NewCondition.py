@@ -14,16 +14,16 @@ class NewCondition:
         self.conditions = []
         self.delimiter = []
         self.meta_data = parsed_dict
-        self.leaf_condition = True
+        self.leaf_conditions = True
         self.source_columns: list[BaseColumn] = []
         if hasattr(parsed_dict, "condition_group"):
             # non-leaf condition : Picks multiple conditions and delimiter and performs recursion
             self.leaf_condition = False
             for condition in parsed_dict.condition_group:
                 self.conditions.append(NewCondition(condition, alias_names, alias_list))
-                delim = condition.delimiter if hasattr(condition, "delimiter") else ""
+                delim = condition.delimiter if hasattr(condition, "delimiter") and not hasattr(condition, "LHS") else ""
                 self.delimiter.append(delim)
-        elif hasattr(parsed_dict, "LHS"):
+        if hasattr(parsed_dict, "LHS"):
             # leaf condition : Picks single LHS - RHS + comparator condition
             self.leaf_condition = True
             self.LHS = []
@@ -63,8 +63,11 @@ class NewCondition:
                 query +=" " + self.delimiter_leaf + "  "
         else:
             for i in range(len(self.conditions)):
-                query += "(" + self.conditions[i].recreate_query() + ")"
-                query += " " + self.delimiter[i] + " "
+                if self.conditions[i].leaf_condition:
+                    query += self.conditions[i].recreate_query()
+                else:
+                    query += "(" + self.conditions[i].recreate_query() + ")"
+                    query += " " + self.delimiter[i] + " "
         return query
 
     def post_process(self, alias_names, alias_list):
