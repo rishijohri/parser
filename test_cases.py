@@ -8,6 +8,13 @@ case_column_tests = [
                 CASE WHEN b=1 THEN c 
                 ELSE d END 
             ELSE e END""",
+            '''
+case
+        when column4 = 5 AND column45 = 25 then 1
+        when c.column4 is 6 then 2
+        else 0
+    end
+'''
 ]
 
 column_tests = [

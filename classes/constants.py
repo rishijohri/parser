@@ -22,7 +22,10 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("CREATE"),
         ~pp.CaselessKeyword("TABLE"),
         ~pp.CaselessKeyword("AS"),
+        ~pp.CaselessKeyword("IS"),
+        ~pp.CaselessKeyword("LIKE"),
         ~pp.CaselessKeyword("IN"),
+        ~pp.CaselessKeyword("NOT"),
         ~pp.CaselessKeyword("AND"),
         ~pp.CaselessKeyword("OR"),
         # functions

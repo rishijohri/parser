@@ -124,7 +124,7 @@ def parse_create_query(query):
 
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
-    comparator = pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS")
+    comparator = pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS") | pp.CaselessKeyword("NOT LIKE")
     assert isinstance(comparator, pp.ParserElement)
     equality_condition = pp.Group(
         pp.And(
@@ -136,12 +136,12 @@ def parse_create_query(query):
             ]
         )
     )
-
+    in_comparator = pp.CaselessKeyword("IN") | pp.CaselessKeyword("NOT IN")
     in_condition_clause = pp.Group(
         pp.And(
             [
                 column.setResultsName("LHS"),
-                pp.CaselessKeyword("IN").setResultsName("comparator"),
+                in_comparator.setResultsName("comparator"),
                 pp.Group(
                     pp.And(
                         [
@@ -197,11 +197,11 @@ def parse_create_query(query):
         + pp.Optional(pp.Keyword(")"))
     ).setResultsName("case_column")
 
-    # print("Case Column Test")
-    # for test in test_cases.case_column_tests:
-    #     print(test)
-    #     pprint(case_column.parseString(test).asDict())
-    #     print(case_column.parseString(test).case_column.case.result)
+    print("Case Column Test")
+    for test in test_cases.case_column_tests:
+        print(test)
+        pprint(case_column.parseString(test).asDict())
+        print(case_column.parseString(test).case_column.case.result)
 
     # Create Clause grammer
     create_clause = pp.Group(
@@ -477,39 +477,14 @@ if __name__ == "__main__":
                     f.write(definition_str)
     else:
         tables = []
-        file_path = "code/single_query.sql"
+        file_path = "code/complex_query.sql"
         with open(file_path, "r"):
             print("reading file")
             tables = read_script(file_path)
-        table_name = "source2"
-        column_name = ["column45"]
+        table_name = "new_table"
+        column_name = ["col4"]
         definition, definition_str = get_definition(table_name, column_name, tables)
         print(definition_str)
 
 
-# Example usage:
-# specific_file = "complex_query.sql"
-# parse_specific_file = True
-# # List all files in queries directory
-# if parse_specific_file:
-#     tables = []
-#     with open("queries/" + specific_file, "r") as f:
-#         main_query = f.read()
-#         queries = separate_queries(main_query)
-#         for query in queries:
-#             print("\nQuery: \n")
-#             print(query)
-#             print("\nParsed Query: \n")
-#             table = parse_create_query(query)
-#             tables.append(table)
-#             # print(table)
-#             # print(table.meta_data)
-# else:
-#     files = os.listdir("queries")
-#     for i, sql_file in enumerate(files):
-#         with open("queries/" + sql_file, "r") as f:
-#             main_query = f.read()
-#             queries = separate_queries(main_query)
-#             for query in queries:
-#                 result = parse_create_query(query)
-# pprint(result)
+
