@@ -53,7 +53,7 @@ class BaseColumn:
             self.source_table = ""
         if self.source_table != "":
             self.real_column = True
-        print(self.meta_data)
+        # print(self.meta_data)
     
 
     def post_process(self, alias_names, alias_list):
