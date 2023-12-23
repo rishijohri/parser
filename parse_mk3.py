@@ -199,11 +199,11 @@ def parse_create_query(query):
         + pp.Optional(pp.Keyword(")"))
     ).setResultsName("case_column")
 
-    print("Case Column Test")
-    for test in test_cases.case_column_tests:
-        print(test)
-        pprint(case_column.parseString(test).asDict())
-        print(case_column.parseString(test).case_column.case.result)
+    # print("Case Column Test")
+    # for test in test_cases.case_column_tests:
+    #     print(test)
+    #     pprint(case_column.parseString(test).asDict())
+    #     print(case_column.parseString(test).case_column.case.result)
 
     # Create Clause grammer
     create_clause = pp.Group(
@@ -335,7 +335,7 @@ def parse_create_query(query):
 
 
 def get_follow_sources(
-    table_name, column_names=[], tables=[]
+    table_name, column_names=[], tables: List[Table]=[]
 ) -> Tuple[list, list, Table, list]:
     source_columns = []
     source_tables = []
@@ -350,8 +350,7 @@ def get_follow_sources(
                 if column.name in column_names:
                     match_table = table
                     match_column.append(column)
-                    source_columns.extend(column.source_columns)
-
+                    source_columns.extend(source_column for source_column in column.source_columns if source_column.real_column)
                     # Get Filter source columns
                     if table.filters != None:
                         source_columns.extend(table.filters.source_columns)
@@ -368,7 +367,11 @@ def get_follow_sources(
                                 source_columns.append(source_column)
 
                     source_columns = list(set(source_columns))
-
+    
+    # print("source_columns ", source_columns)
+    # print("source_tables ", source_tables)
+    # print("match_table ", match_table.name)
+    # print("match_column ", [match_column.name for match_column in match_column])
     return source_columns, source_tables, match_table, match_column
 
 
@@ -392,7 +395,7 @@ def get_definition(table_name, column_name, tables, print_result=False):
         column_names = []
         for column in source_columns:
             if column.source_table == table_name:
-                column_names.append(column.column)
+                column_names.append(column.name)
         # print(table_name, column_names)
         (
             source_columns_new,

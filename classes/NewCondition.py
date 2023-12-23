@@ -10,12 +10,21 @@ class NewCondition:
         meta_data: contains the parsed dictionary. 
             Expected to have "condition_group" and optionally delimiter
                 or ("LHS" and "RHS" and "comparator" and optionally "delimiter")
+        conditions: list of NewCondition objects
+        delimiter: list of delimiters between conditions
+        leaf_condition: True if the condition is a leaf condition (No child conditions attached)
+        LHS: list of BaseColumn objects on the left hand side of the condition (Only for leaf conditions)
+        RHS: list of BaseColumn objects on the right hand side of the condition (Only for leaf conditions)
+        comparator: comparator between LHS and RHS (Only for leaf conditions)
+        delimiter_leaf: delimiter for leaf conditions
         '''
+        self.meta_data = parsed_dict
         self.conditions = []
         self.delimiter = []
         self.meta_data = parsed_dict
         self.leaf_conditions = True
         self.source_columns: list[BaseColumn] = []
+        self.source_tables = []
         if hasattr(parsed_dict, "condition_group"):
             # non-leaf condition : Picks multiple conditions and delimiter and performs recursion
             self.leaf_condition = False
@@ -23,6 +32,9 @@ class NewCondition:
                 self.conditions.append(NewCondition(condition, alias_names, alias_list))
                 delim = condition.delimiter if hasattr(condition, "delimiter") and not hasattr(condition, "LHS") else ""
                 self.delimiter.append(delim)
+                self.source_columns.extend(self.conditions[-1].source_columns)
+                self.source_tables.extend(self.conditions[-1].source_tables)
+
         if hasattr(parsed_dict, "LHS"):
             # leaf condition : Picks single LHS - RHS + comparator condition
             self.leaf_condition = True
@@ -44,6 +56,12 @@ class NewCondition:
                         self.source_columns.append(base_column)
             self.delimiter_leaf: str = parsed_dict.delimiter if hasattr(parsed_dict, "delimiter") else ""
 
+        for source_column in self.source_columns:
+            if source_column.real_column:
+                self.source_tables.append(source_column.source_table)
+        
+        self.source_columns = list(set(self.source_columns))
+        self.source_tables = list(set(self.source_tables))
 
     def __str__(self):
         pprint(self.meta_data) 

@@ -49,7 +49,7 @@ class Join:
         if self.sub_query_chk:
             query +=  self.recreate_sub_query() 
         else:
-            query += self.name
+            query += self.database + "." + self.name
         
         if self.alias != "":
             query += " " + self.alias

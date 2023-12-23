@@ -29,7 +29,6 @@ class BaseColumn:
         self.source_alias = (
             parsed_dict.source[0] if hasattr(parsed_dict, "source") else ""
         )
-        self.post_process(alias_names, alias_list)
 
         self.col_argument = None
         if hasattr(parsed_dict, "col_argument"):
@@ -38,9 +37,21 @@ class BaseColumn:
 
         if self.argument_func == "" and self.source_alias == "":
             # define grammar to figure out if it is a column or a value
-            value_grammar = pp.MatchFirst([pp.Word(pp.nums + "."), pp.quotedString()])
-            if value_grammar.searchString(self.name) != []:
+            value_grammar = pp.MatchFirst([pp.Word(pp.nums[0:1] + pp.nums + "."), pp.quotedString()])
+            value_result = []
+            try:
+                value_result = value_grammar.parseString(self.name) # any value means it is not a column
+            except:
+                pass
+            if value_result != [] or self.name.lower() in ["true", "false", "null"]:
                 self.real_column = False
+        
+        if self.real_column:
+            self.post_process(alias_names, alias_list)
+        else:
+            self.source_table = ""
+        if self.source_table != "":
+            self.real_column = True
         
     
 
@@ -52,6 +63,13 @@ class BaseColumn:
             self.source_table = alias_names[self.source_alias]
         else:
             self.source_table = ""
+        
+        if self.source_alias == "" and alias_list != []:
+            self.source_alias = alias_names[alias_list[0]]
+            self.source_table = alias_names[alias_list[0]]
+        
+        
+        
 
     def __str__(self):
         pprint(self.meta_data)

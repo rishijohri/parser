@@ -3,16 +3,16 @@ from .ConditionGroup import ConditionGroup
 from .Column import Column
 from .Join import Join
 from .NewCondition import NewCondition
-
+from typing import Any, List
 class Table:
-    def __init__(self, name: str = "Unset", alias=None):
+    def __init__(self, name: str = "Unset"):
         self.database: str = "Default"
         self.source_database: str = "Default"
         self.source_table: str = ""
-        self.name = name
-        self.source_alias = alias
-        self.columns = []
-        self.joins = []
+        self.name : str = name
+        self.source_alias: str = ""
+        self.columns : List[Column] = []
+        self.joins: List[Join] = []
         # self.filters = Condition([], result="NULL", condition_type="None")
         self.filters = None
         self.group_by = []
@@ -68,6 +68,7 @@ class Table:
         '''
         Data entry via parsed dictionary
         '''
+        self.meta_data = parsed_dict
         self.name =   parsed_dict.create.table_name[0] if hasattr(parsed_dict.create, "table_name") else "Unset"
         self.database =   parsed_dict.create.source[0] if hasattr(parsed_dict.create, "source") else "Default"
 
@@ -75,7 +76,7 @@ class Table:
         assert(hasattr(parsed_dict, "table_def"))
         self.source_table = parsed_dict.table_def.table_name[0]
         self.source_database = parsed_dict.table_def.source[0] if hasattr(parsed_dict.table_def, "source") else "Default"
-        self.source_alias =  parsed_dict.table_def.table_alias[0] if hasattr(parsed_dict.table_def, "table_alias") else None
+        self.source_alias =  parsed_dict.table_def.table_alias[0] if hasattr(parsed_dict.table_def, "table_alias") else ""
 
         #Joins information
         if hasattr(parsed_dict, "joins"):
@@ -85,15 +86,16 @@ class Table:
                         parsed_dict=join
                     )
                 )
-        
-        # parse where filters
-        if hasattr(parsed_dict, "wheres2"):
-            self.filters = NewCondition(parsed_dict=parsed_dict.wheres2[0])
-        elif hasattr(parsed_dict, "wheres1"):
-            self.filters = NewCondition(parsed_dict=parsed_dict.wheres1[0])
-        
         # get alias names
         self.alias_solver()
+
+        # parse where filters
+        if hasattr(parsed_dict, "wheres2"):
+            self.filters = NewCondition(parsed_dict=parsed_dict.wheres2[0], alias_names=self.alias_names, alias_list=self.alias_list)
+        elif hasattr(parsed_dict, "wheres1"):
+            self.filters = NewCondition(parsed_dict=parsed_dict.wheres1[0], alias_names=self.alias_names, alias_list=self.alias_list)
+        
+        
 
         # parse columns
         for column in parsed_dict.columns:
@@ -109,7 +111,6 @@ class Table:
         for join in self.joins:
             join.post_process(self.alias_names, self.alias_list)
         
-
 
 
     def recreate_query(self, columns=[]):
@@ -128,7 +129,7 @@ class Table:
                     combine_source_tables.append(source_table)
         for i, column in enumerate(columns):
             query += column.recreate_query() 
-            query += ", " if i < len(columns) - 1 else "\n"
+            query += ", \n" if i < len(columns) - 1 else "\n"
         # Add from statement
 
         query += "FROM " + self.source_database + "." + self.source_table + "\n"

@@ -14,25 +14,43 @@ class CaseResult:
         leaf_cases: a list of boolean values to indicate if the result is a string or a CaseResult object
         '''
         #notes: result can be more than 1 if there is some arithmetic operation happening in the result
+        self.meta_data = parsed_dict
         self.result = []
         self.condition: list[NewCondition] = []
         self.leaf_cases = []
         self.else_result = parsed_dict.else_case.definition[0].name[0] if hasattr(parsed_dict, "else_case") else ""
+        self.source_tables = []
+        self.source_columns = []
         for case in parsed_dict.cases:
             self.condition.append(NewCondition(case, alias_names, alias_list))
             if hasattr(case.result[0], "name"):
                 self.leaf_cases.append(True)
-                self.result.append(case.result[0].name[0])
+                self.result.append(BaseColumn(case.result[0], alias_names, alias_list))
             if hasattr(case.result[0], "cases"):
                 self.leaf_cases.append(False)
                 self.result.append(CaseResult(case.result[0], alias_names, alias_list))
+        
+        # post process the case statement
+        for condition in self.condition:
+            self.source_tables.extend(condition.source_tables)
+            self.source_columns.extend(condition.source_columns)
+        for result in self.result:
+            if isinstance(result, BaseColumn):
+                if result.real_column:
+                    self.source_tables.append(result.source_table)
+                    self.source_columns.append(result)
+        
+        
+        self.source_tables = list(set(self.source_tables))
+        self.source_columns = list(set(self.source_columns))
         return
         
+    
     def recreate_query(self, tabs: str=""):
         query = tabs + "CASE \n"
         for i in range(len(self.condition)):
             if self.leaf_cases[i]:
-                query += tabs + "WHEN " + str(self.condition[i].recreate_query()) + " THEN " + str(self.result[i]) + "\n"
+                query += tabs + "WHEN " + str(self.condition[i].recreate_query()) + " THEN " + self.result[i].recreate_query() + "\n"
             else:
                 query += tabs + "WHEN " + self.condition[i].recreate_query() + " THEN \n" + self.result[i].recreate_query(tabs="\t") + "\n"
         if self.else_result != "":
@@ -71,7 +89,8 @@ class Column:
         if hasattr(parsed_dict, "case_column"):
             self.case_type = True
             self.case = CaseResult(parsed_dict.case_column, alias_names, alias_list)
-        
+            self.source_columns += self.case.source_columns
+            self.source_tables += self.case.source_tables
 
         for source_column in self.source_columns:
             if source_column.real_column:

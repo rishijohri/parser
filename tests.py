@@ -1,24 +1,9 @@
 # Python
 import pyparsing as pp
 
-# Define a placeholder for a case statement
-case_stmt = pp.Forward()
-
-# Define the grammar for a case statement
-word = ~pp.CaselessKeyword("END") + ~pp.CaselessKeyword("WHEN") + ~pp.CaselessKeyword("CASE") + ~pp.CaselessKeyword("THEN") + pp.Word(pp.alphas)
-case_stmt << pp.Group(
-    "CASE"
-    + pp.OneOrMore(
-        pp.Group(
-            "WHEN"
-            + word
-            + "THEN"
-            + pp.MatchFirst([word, case_stmt])
-        )
-    )
-    + pp.Optional("ELSE" + word)
-    + "END"
-)
-
+value_grammar = pp.MatchFirst([pp.Word(pp.nums[0:1] + pp.nums + "."), pp.quotedString()]) + pp.StringEnd()
+print(value_grammar.parseString("1.0"))
+print(value_grammar.parseString("column1"))
+print(value_grammar.parseString("column"))
 # Test the grammar
-print(case_stmt.parseString("CASE WHEN x THEN CASE WHEN y THEN z END END"))
+
