@@ -1,3 +1,10 @@
+CREATE TABLE sdb.source2 AS 
+SELECT source_original.column1, 
+source_original.column2, 
+source_original.column3
+FROM sdb.source_original
+WHERE source_original.column1 = 1 AND  source_original.column2 = 2
+;
 CREATE TABLE Default.source AS 
 SELECT source_original.column1, 
 source_original.column2, 
@@ -5,13 +12,6 @@ source_original.column3,
 source_original.column45, 
 source_original.column5
 FROM sdb.source_original
-;
-CREATE TABLE sdb.source2 AS 
-SELECT source_original.column1, 
-source_original.column2, 
-source_original.column3
-FROM sdb.source_original
-WHERE source_original.column1 = 1 AND  source_original.column2 = 2
 ;
 CREATE TABLE Default.new_table AS 
 SELECT CASE 

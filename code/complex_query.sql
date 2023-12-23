@@ -28,7 +28,7 @@ SELECT coalesce(b.column1, 0),
         WHEN b.column2 < 5 THEN 2
         when column1 in (1,2,3) or column1 = column5 then 3
         else 0
-    end as col3,
+    end as col3, -- comment which is not funny
     case
         when column4 = 5 AND column45 = 25 then 1
         when c.column4 is NULL then 2

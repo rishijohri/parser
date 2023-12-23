@@ -63,7 +63,6 @@ def get_definition(table_name, column_name, tables, print_result=False):
 
     while len(source_tables) > 0:
         table_name = source_tables.pop()
-        print("table_name ", table_name)
         column_names = []
         for column in source_columns:
             if column.source_table == table_name:
@@ -77,8 +76,8 @@ def get_definition(table_name, column_name, tables, print_result=False):
         ) = get_follow_sources(table_name, column_names, tables)
         # print(current_table)
         if current_table != None and current_table.name != "Unset":
-            print("current_table ", current_table.name)
-            print("source_tables_new ", source_tables_new)
+            # print("current_table ", current_table.name)
+            # print("source_tables_new ", source_tables_new)
             table_recreate = current_table.recreate_query(current_columns)
             for table in source_tables_new:
                 if table not in source_tables:

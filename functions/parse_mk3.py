@@ -1,4 +1,5 @@
 import pyparsing as pp
+import re
 import os
 from types import SimpleNamespace
 from pprint import pprint
@@ -47,6 +48,13 @@ def query_type_check(queries):
 def separate_queries(queries):
     return [query.strip() + " ;" for query in queries.split(";") if query.strip()]
 
+def comment_remover(query):
+    '''
+    remove comments from hive and sql scripts
+    comments start with -- and end with \n
+    '''
+    query_without_comments = re.sub(r'--.*?$|/\*.*?\*/', '', query, flags=re.MULTILINE|re.DOTALL)
+    return query_without_comments
 
 # write parse_create_query function here using pyparsing
 def parse_create_query(query):
@@ -338,14 +346,12 @@ def read_script(file_path):
     with open(file_path, "r") as f:
         main_query = f.read()
         queries = separate_queries(main_query)
+        queries = query_type_check(queries)
         for query in queries:
-            # print("\nQuery: \n")
-            # print(query)
-            # print("\nParsed Query: \n")
+            query = comment_remover(query)
             table = parse_create_query(query)
             tables.append(table)
-            # print(table)
-            # print(table.meta_data)
+
     return tables
 
 
