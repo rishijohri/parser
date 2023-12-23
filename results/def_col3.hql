@@ -1,10 +1,3 @@
-CREATE TABLE sdb.source2 AS 
-SELECT source_original.column1, 
-source_original.column2, 
-source_original.column3
-FROM sdb.source_original
-WHERE source_original.column1 = 1 AND  source_original.column2 = 2
-;
 CREATE TABLE Default.source AS 
 SELECT source_original.column1, 
 source_original.column2, 
@@ -13,9 +6,16 @@ source_original.column45,
 source_original.column5
 FROM sdb.source_original
 ;
+CREATE TABLE sdb.source2 AS 
+SELECT source_original.column1, 
+source_original.column2, 
+source_original.column3
+FROM sdb.source_original
+WHERE source_original.column1 = 1 AND  source_original.column2 = 2
+;
 CREATE TABLE Default.new_table AS 
 SELECT CASE 
-WHEN source.column3 < source.column45 OR  (source2.column3 = 10 AND  source2.column3 > 2)   THEN 1
+WHEN COALESCE(source.column3, 99) < source.column45 OR  (source2.column3 = 10 AND  source2.column3 > 2)   THEN TRIM(source.ABRACADABRA, 99)
 WHEN source2.column2 < 5 THEN 2
 WHEN source.column1 IN (1, 2, 3)  OR  source.column1 = source.column5 THEN 3
 ELSE 0

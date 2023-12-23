@@ -18,17 +18,17 @@ class CaseResult:
         self.result = []
         self.condition: list[NewCondition] = []
         self.leaf_cases = []
-        self.else_result = parsed_dict.else_case.definition[0].name[0] if hasattr(parsed_dict, "else_case") else ""
+        self.else_result = BaseColumn(parsed_dict.else_case.definition[0]) if hasattr(parsed_dict, "else_case") else ""
         self.source_tables = []
         self.source_columns = []
         for case in parsed_dict.cases:
             self.condition.append(NewCondition(case, alias_names, alias_list))
-            if hasattr(case.result[0], "name"):
-                self.leaf_cases.append(True)
-                self.result.append(BaseColumn(case.result[0], alias_names, alias_list))
             if hasattr(case.result[0], "cases"):
                 self.leaf_cases.append(False)
                 self.result.append(CaseResult(case.result[0], alias_names, alias_list))
+            else:
+                self.leaf_cases.append(True)
+                self.result.append(BaseColumn(case.result[0], alias_names, alias_list))
         
         # post process the case statement
         for condition in self.condition:
@@ -40,6 +40,11 @@ class CaseResult:
                     self.source_tables.append(result.source_table)
                     self.source_columns.append(result)
         
+        if self.else_result != "":
+            if isinstance(self.else_result, BaseColumn):
+                if self.else_result.real_column:
+                    self.source_tables.append(self.else_result.source_table)
+                    self.source_columns.append(self.else_result)
         
         self.source_tables = list(set(self.source_tables))
         self.source_columns = list(set(self.source_columns))
@@ -53,8 +58,8 @@ class CaseResult:
                 query += tabs + "WHEN " + str(self.condition[i].recreate_query()) + " THEN " + self.result[i].recreate_query() + "\n"
             else:
                 query += tabs + "WHEN " + self.condition[i].recreate_query() + " THEN \n" + self.result[i].recreate_query(tabs="\t") + "\n"
-        if self.else_result != "":
-            query += tabs + "ELSE " + self.else_result + "\n"
+        if self.else_result != "" and isinstance(self.else_result, BaseColumn):
+            query += tabs + "ELSE " + self.else_result.recreate_query() + "\n"
         query += "END"
         return query
 

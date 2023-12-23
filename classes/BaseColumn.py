@@ -18,8 +18,9 @@ class BaseColumn:
         '''
         self.real_column = True
         self.meta_data = parsed_dict
+        
         self.argument_func = (
-            parsed_dict.argument_func if hasattr(parsed_dict, "argument_func") else ""
+            parsed_dict.aggregate_func if hasattr(parsed_dict, "aggregate_func") else ""
         )
         self.arguments = (
             parsed_dict.arguments if hasattr(parsed_dict, "arguments") else ""
@@ -52,7 +53,7 @@ class BaseColumn:
             self.source_table = ""
         if self.source_table != "":
             self.real_column = True
-        
+        print(self.meta_data)
     
 
     def post_process(self, alias_names, alias_list):
@@ -84,7 +85,7 @@ class BaseColumn:
             if self.col_argument != None:
                 query += self.col_argument.recreate_query()
             for argument in self.arguments:
-                query += argument + ", "
+                query += ", " + argument
             query += ")"
         else:
             if self.source_table != "" and self.real_column:

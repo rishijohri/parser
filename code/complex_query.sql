@@ -24,7 +24,7 @@ CREATE TABLE new_table AS
 SELECT coalesce(b.column1, 0),
     a.column1+100 as whatever,
     CASE
-        WHEN a.column3 < a.column45 or (b.column3=10 AND b.column3>2) THEN 1
+        WHEN COALESCE(a.column3, 99) < a.column45 or (b.column3=10 AND b.column3>2) THEN TRIM(ABRACADABRA, 99)
         WHEN b.column2 < 5 THEN 2
         when column1 in (1,2,3) or column1 = column5 then 3
         else 0

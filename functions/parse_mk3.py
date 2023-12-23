@@ -132,7 +132,7 @@ def parse_create_query(query):
 
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
-    comparator = pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS") | pp.CaselessKeyword("NOT LIKE")
+    comparator = pp.Word("=<>") | pp.CaselessKeyword("LIKE") | pp.CaselessKeyword("IS") | pp.CaselessKeyword("NOT LIKE") | pp.CaselessKeyword("IS NOT") | pp.CaselessKeyword("NOT")
     assert isinstance(comparator, pp.ParserElement)
     equality_condition = pp.Group(
         pp.And(
