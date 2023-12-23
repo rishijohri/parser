@@ -94,8 +94,6 @@ class Table:
             self.filters = NewCondition(parsed_dict=parsed_dict.wheres2[0], alias_names=self.alias_names, alias_list=self.alias_list)
         elif hasattr(parsed_dict, "wheres1"):
             self.filters = NewCondition(parsed_dict=parsed_dict.wheres1[0], alias_names=self.alias_names, alias_list=self.alias_list)
-        
-        
 
         # parse columns
         for column in parsed_dict.columns:
@@ -106,6 +104,16 @@ class Table:
                     alias_list=self.alias_list
                 )
             )
+        
+        # parse group by
+        if hasattr(parsed_dict, "group_by"):
+            for column in parsed_dict.group_by[0].columns:
+                self.group_by.append(Column(column, self.alias_names, self.alias_list))
+        
+        # parse order by
+        if hasattr(parsed_dict, "order_by"):
+            for column in parsed_dict.order_by[0].columns:
+                self.order_by.append(Column(column, self.alias_names, self.alias_list))
         
         # post process joins
         for join in self.joins:
@@ -144,4 +152,18 @@ class Table:
         if self.filters != None:
             query += "WHERE " + self.filters.recreate_query() + "\n"
 
+        # Add group by statement
+        if self.group_by != []:
+            query += "GROUP BY "
+            for i, column in enumerate(self.group_by):
+                query += column.recreate_query()
+                query += ", " if i < len(self.group_by) - 1 else "\n"
+        
+        # Add order by statement
+        if self.order_by != []:
+            query += "ORDER BY "
+            for i, column in enumerate(self.order_by):
+                query += column.recreate_query()
+                query += ", " if i < len(self.order_by) - 1 else "\n"
+        query += ";"
         return query

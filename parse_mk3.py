@@ -291,13 +291,13 @@ def parse_create_query(query):
 
 
     # Group by clause grammer
-    group_clause = pp.CaselessKeyword("GROUP BY") + pp.Group(pp.delimitedList(column))
+    group_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("GROUP BY")) + columns)
 
     # Order by clause grammer
-    order_clause = pp.CaselessKeyword("ORDER BY") + pp.Group(pp.delimitedList(column))
+    order_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("ORDER BY")) + columns)
 
     # Limit clause grammer
-    limit_clause = pp.CaselessKeyword("LIMIT") + pp.Word(pp.nums)
+    limit_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("LIMIT")) + pp.Word(pp.nums))
 
     # Final Query grammer
     assert type(create_clause) == pp.Group and create_clause is not None
@@ -314,11 +314,11 @@ def parse_create_query(query):
             pp.Optional(pp.Literal(";")),
             pp.Optional(where_clause).setResultsName("wheres2"),
             pp.Optional(pp.Literal(";")),
-            pp.Optional(group_clause).setResultsName("groups"),
+            pp.Optional(group_clause).setResultsName("group_by"),
             pp.Optional(pp.Literal(";")),
-            pp.Optional(order_clause).setResultsName("orders"),
+            pp.Optional(order_clause).setResultsName("order_by"),
             pp.Optional(pp.Literal(";")),
-            pp.Optional(limit_clause),
+            pp.Optional(limit_clause).setResultsName("limit"),
             pp.Optional(pp.Literal(")")),
             pp.Optional(pp.Literal(";")),
         ]
@@ -341,12 +341,15 @@ def get_follow_sources(
     source_tables = []
     match_table = Table()
     match_column = []
+    # print("column_names ", column_names)
     for table in tables:
         if (
             table.name == table_name
             or (table.source_database + "." + table.name) == table_name
         ):
+            # print("table found ", table.name)
             for column in table.columns:
+                # print("\t column name ", column.name)
                 if column.name in column_names:
                     match_table = table
                     match_column.append(column)
@@ -487,7 +490,7 @@ if __name__ == "__main__":
             print("reading file")
             tables = read_script(file_path)
         table_name = "new_table"
-        column_name = ["col4"]
+        column_name = ["col3"]
         definition, definition_str = get_definition(table_name, column_name, tables)
         print(definition_str)
 

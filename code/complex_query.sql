@@ -40,4 +40,6 @@ LEFT JOIN sdb.source3 c on a.column1 = c.column1
 WHERE column1 = 1
     AND c.column2 = 2
     and b.column3 in (1,2,3)
-    or column2 = 1;
+    or column2 = 1
+    GROUP BY
+    column1, column2;

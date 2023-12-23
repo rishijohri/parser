@@ -77,6 +77,8 @@ class Column:
         self.definition = parsed_dict.definition if hasattr(parsed_dict, "definition") else []
         for definition in self.definition:
             self.source_columns.append(BaseColumn(definition, alias_names, alias_list))
+        if len(self.source_columns) == 1:
+            self.name = self.source_columns[0].name
         
         if len(self.source_columns) == 1:
             self.name = self.source_columns[0].name
