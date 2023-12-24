@@ -25,7 +25,7 @@ SELECT coalesce(b.column1, 0),
     a.column1+100 as whatever,
     CASE
         WHEN COALESCE(a.column3, 99) < a.column45 or (b.column3=10 AND b.column3>2) THEN TRIM(ABRACADABRA, 99)
-        WHEN b.column2 < 5 THEN 2
+        WHEN b.column2 < 5 THEN CAST(b.column2 AS DATE)
         when column1 in (1,2,3) or column1 = column5 then 3
         else 0
     end as col3, -- comment which is not funny

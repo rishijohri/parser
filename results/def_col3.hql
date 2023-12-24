@@ -16,7 +16,7 @@ FROM sdb.source_original
 CREATE TABLE Default.new_table AS 
 SELECT CASE 
 WHEN COALESCE(source.column3, 99) < source.column45 OR  (source2.column3 = 10 AND  source2.column3 > 2)   THEN TRIM(source.ABRACADABRA, 99)
-WHEN source2.column2 < 5 THEN 2
+WHEN source2.column2 < 5 THEN CAST(source2.column2 as DATE)
 WHEN source.column1 IN (1, 2, 3)  OR  source.column1 = source.column5 THEN 3
 ELSE 0
 END AS col3

@@ -22,6 +22,8 @@ column_tests = [
     '''source.column3''',
     '''MIN(source.column3)''',
     '''MAX(source.column2) - MAX(source.column4) + source1''',
+    '''CAST(NULL as INT)''',
+    '''CAST(source.column2 AS INT)''',
 ]
 
 all_condition_tests = [

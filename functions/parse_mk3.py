@@ -1,11 +1,7 @@
 import pyparsing as pp
 import re
-import os
 from types import SimpleNamespace
 from pprint import pprint
-from PyQt5.QtWidgets import QApplication, QFileDialog
-from display_view.choice_view import choose_elements
-from display_view.display_view import display_text
 from typing import Tuple, List
 from classes.constants import special_words, special_words_list, special_char_name
 from classes.BaseColumn import BaseColumn
@@ -14,6 +10,7 @@ from classes.ConditionGroup import ConditionGroup
 from classes.Column import Column
 from classes.Join import Join
 from classes.Table import Table
+
 import functions.test_cases as test_cases
 
 
@@ -31,8 +28,16 @@ def dict_to_obj(d):
 # Create class to store information about Column
 all_tables = []
 all_columns = []
-
-
+default_test_cases = {
+    "column": False,
+    "case_column": False,
+    "condition": False,
+    "condition_group": False,
+    "create": False,
+    "join": False,
+    "table": False,
+    "query": False,
+}
 def query_type_check(queries):
     """
     Gets an list of queries and returns a list of query which are create table queries
@@ -57,7 +62,7 @@ def comment_remover(query):
     return query_without_comments
 
 # write parse_create_query function here using pyparsing
-def parse_create_query(query):
+def parse_create_query(query, default_chk=default_test_cases):
     # define grammer
     # ALias Grammar
     allowed_name: pp.ParserElement = pp.And(
@@ -113,8 +118,8 @@ def parse_create_query(query):
         + pp.Suppress("(")
         + column.setResultsName("col_argument")
         + pp.Optional(
-            pp.Char(",")
-            + pp.delimitedList(allowed_name, delim=",").setResultsName("arguments")
+            (pp.Char(",") | pp.CaselessKeyword("AS"))
+            + pp.delimitedList(allowed_name| data_types, delim=",").setResultsName("arguments")
         )
         + pp.Suppress(")")
         + pp.Optional(pp.Word("+-*/").setResultsName("operator"))
@@ -124,11 +129,11 @@ def parse_create_query(query):
         [base_column, multi_argu_column]
     )
     column = pp.OneOrMore(column).setResultsName("definition")
-
-    # print("Column Test")
-    # for test in test_cases.column_tests:
-    #     print(test)
-    #     print(column.parseString(test))
+    if default_chk["column"]:
+        print("Column Test")
+        for test in test_cases.column_tests:
+            print(test)
+            print(column.parseString(test).asDict())
 
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
@@ -180,10 +185,12 @@ def parse_create_query(query):
         )
     ).setResultsName("condition_group")
 
-    # print("Condition Test")
-    # for test in test_cases.all_condition_tests:
-    #     print(test)
-    #     print(condition_group.parseString(test))
+    if default_chk["condition"]:
+        print("Condition Test")
+        for test in test_cases.all_condition_tests:
+            print(test)
+            print(condition_group.parseString(test))
+
 
     case_column = pp.Forward()
     # Case statement grammer
@@ -207,11 +214,11 @@ def parse_create_query(query):
         + pp.Optional(pp.Keyword(")"))
     ).setResultsName("case_column")
 
-    # print("Case Column Test")
-    # for test in test_cases.case_column_tests:
-    #     print(test)
-    #     pprint(case_column.parseString(test).asDict())
-    #     print(case_column.parseString(test).case_column.case.result)
+    if default_chk["case_column"]:
+        print("Case Column Test")
+        for test in test_cases.case_column_tests:
+            print(test)
+            print(case_column.parseString(test).asDict())
 
     # Create Clause grammer
     create_clause = pp.Group(
@@ -270,10 +277,11 @@ def parse_create_query(query):
     query_grammar = column_clause + table_grammer + pp.Optional(where_clause).setResultsName("where")
     assert isinstance(query_grammar, pp.ParserElement)
 
-    # print("Basic Table Test")
-    # for test in test_cases.basic_table_tests:
-    #     print(test)
-    #     pprint(query_grammar.parseString(test).asDict())
+    if default_chk["query"]:
+        print("Basic Table Test")
+        for test in test_cases.basic_table_tests:
+            print(test)
+            pprint(query_grammar.parseString(test).asDict())
 
     # Join clause grammer
     sub_query = pp.Group(pp.Literal("(") + query_grammar + pp.Literal(")") + table_alias).setResultsName("sub_query")
@@ -285,6 +293,9 @@ def parse_create_query(query):
                 pp.CaselessKeyword("OUTER JOIN"),
                 pp.CaselessKeyword("INNER JOIN"),
                 pp.CaselessKeyword("JOIN"),
+                pp.CaselessKeyword("FULL OUTER JOIN"),
+                pp.CaselessKeyword("LEFT OUTER JOIN"),
+                pp.CaselessKeyword("RIGHT OUTER JOIN"),
             ]
         ).setResultsName("join_type")
         + pp.MatchFirst([sub_query, table_grammer])
@@ -292,10 +303,12 @@ def parse_create_query(query):
         + condition_group
     )
 
-    # print("Join Test")
-    # for test in test_cases.join_tests:
-    #     print(test)
-    #     pprint(join_clause.parseString(test).asDict())
+    if default_chk["join"]:
+        print("Join Test")
+        for test in test_cases.join_tests:
+            print(test)
+            pprint(join_clause.parseString(test).asDict())
+
 
 
     # Group by clause grammer
@@ -356,7 +369,4 @@ def read_script(file_path):
 
 
 # Run if this file is run directly
-
-
-
 

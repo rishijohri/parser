@@ -4,7 +4,7 @@ from pprint import pprint
 
 
 class BaseColumn:
-    def __init__(self, parsed_dict: Any, alias_names=[], alias_list=[]):
+    def __init__(self, parsed_dict: Any=[], alias_names=[], alias_list=[]):
         '''
         meta_data: contains the parsed dictionary
         name: name of the column
@@ -16,6 +16,9 @@ class BaseColumn:
         operator: operator applied to the column at the end
         col_argument: column argument of the function (BaseColumn)
         '''
+        self.false_column = False
+        if parsed_dict == []:
+            self.false_column = True
         self.real_column = True
         self.meta_data = parsed_dict
         
@@ -36,7 +39,9 @@ class BaseColumn:
             self.col_argument = BaseColumn(parsed_dict.col_argument, alias_names, alias_list)
             self.name = self.col_argument.name
 
-        if self.argument_func == "" and self.source_alias == "":
+        if self.name == "" and self.col_argument ==None:
+            self.real_column = False
+        if self.real_column and self.argument_func == "" and self.source_alias == "":
             # define grammar to figure out if it is a column or a value
             value_grammar = pp.MatchFirst([pp.Word(pp.nums[0:1] + pp.nums + "."), pp.quotedString()])
             value_result = []
@@ -80,12 +85,20 @@ class BaseColumn:
         Recreate the query for the column
         """
         query = ""
+        if self.false_column:
+            return ""
+        if self.real_column==False:
+            query += self.name
+            return query
         if self.argument_func != "":
             query += self.argument_func + "("
             if self.col_argument != None:
                 query += self.col_argument.recreate_query()
-            for argument in self.arguments:
-                query += ", " + argument
+            if self.argument_func.lower() == "cast":
+                query += " as " + self.arguments[0]
+            else:
+                for argument in self.arguments:
+                    query += ", " + argument
             query += ")"
         else:
             if self.source_table != "" and self.real_column:
