@@ -3,7 +3,7 @@ from .ConditionGroup import ConditionGroup
 from .Column import Column
 from .Join import Join
 from .NewCondition import NewCondition
-from typing import Any, List
+from typing import Any, List, Union
 class Table:
     def __init__(self, name: str = "Unset"):
         self.database: str = "Default"
@@ -13,6 +13,7 @@ class Table:
         self.source_alias: str = ""
         self.columns : List[Column] = []
         self.joins: List[Join] = []
+        self.sub_query_chk: bool = False
         # self.filters = Condition([], result="NULL", condition_type="None")
         self.filters = None
         self.group_by = []
@@ -73,11 +74,17 @@ class Table:
         self.database =   parsed_dict.create.source[0] if hasattr(parsed_dict.create, "source") else "Default"
 
         # Source table information
-        assert(hasattr(parsed_dict, "table_def"))
-        self.source_table = parsed_dict.table_def.table_name[0]
-        self.source_database = parsed_dict.table_def.source[0] if hasattr(parsed_dict.table_def, "source") else "Default"
-        self.source_alias =  parsed_dict.table_def.table_alias[0] if hasattr(parsed_dict.table_def, "table_alias") else ""
-
+        if hasattr(parsed_dict, "table_def"):
+            self.source_table = parsed_dict.table_def.table_name[0]
+            self.source_database = parsed_dict.table_def.source[0] if hasattr(parsed_dict.table_def, "source") else "Default"
+            self.source_alias =  parsed_dict.table_def.table_alias[0] if hasattr(parsed_dict.table_def, "table_alias") else ""
+        elif hasattr(parsed_dict, "sub_query"):
+            self.sub_query_chk = True
+            self.sub_query = parsed_dict.sub_query
+            self.sub_query_condition: Union[NewCondition, None] = NewCondition(parsed_dict.sub_query.where[0]) if hasattr(parsed_dict.sub_query, "where") else None
+            self.source_table = parsed_dict.sub_query.table_def.table_name[0]
+            self.source_database = parsed_dict.sub_query.table_def.source[0] if hasattr(parsed_dict.sub_query.table_def, "source") else "Default"
+            self.source_alias =  parsed_dict.sub_query.table_def.table_alias[0] if hasattr(parsed_dict.sub_query.table_def, "table_alias") else ""
         #Joins information
         if hasattr(parsed_dict, "joins"):
             for join in parsed_dict.joins:
@@ -119,7 +126,20 @@ class Table:
         for join in self.joins:
             join.post_process(self.alias_names, self.alias_list)
         
-
+    def recreate_sub_query(self):
+        query = ""
+        query += "( SELECT "
+        for column in self.sub_query.columns:
+            if hasattr(column, "definition"):
+                query += column.definition[0].name[0] + ", "
+            elif hasattr(column, "column_alias"):
+                query += column.column_alias[0][1] + ", "
+        query = query[:-2]
+        query += " FROM " + self.database + "." + self.name
+        if self.sub_query_condition != None:
+            query += " WHERE " + self.sub_query_condition.recreate_query()
+        query += " ) "
+        return query
 
     def recreate_query(self, columns=[]):
         """
@@ -139,8 +159,12 @@ class Table:
             query += column.recreate_query() 
             query += ", \n" if i < len(columns) - 1 else "\n"
         # Add from statement
-
-        query += "FROM " + self.source_database + "." + self.source_table + "\n"
+        query += "FROM "
+        if self.sub_query_chk:
+            query += self.recreate_sub_query()
+        else:
+            query += self.source_database + "." + self.source_table
+        query += "\n"
         # print("combine_source_columns", combine_source_tables)
         # Add join statement
         for join in self.joins:

@@ -3,10 +3,10 @@ from functions.defnition import get_definition
 
 
 tables = []
-file_path = "code/complex_query.sql"
+file_path = "code/single_query.sql"
 to_print = True
-table_name = "new_table"
-column_name = ["col3"]
+table_name = "source2"
+column_name = ["column45"]
 with open(file_path, "r"):
     print("reading file")
     tables = read_script(file_path)

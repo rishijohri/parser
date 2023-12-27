@@ -34,7 +34,7 @@ SELECT coalesce(b.column1, 0),
         when c.column4 is NULL then 2
         else 0
     end as col4
-FROM source a
+FROM sdb.source a
 LEFT JOIN sdb.source2 b ON (a.column1 = b.column1)
 LEFT JOIN sdb.source3 c on a.column1 = c.column1
 WHERE column1 = 1

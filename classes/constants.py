@@ -41,6 +41,13 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("CAST"),
         ~pp.CaselessKeyword("DATE_FORMAT"),
         ~pp.CaselessKeyword("ADD_MONTHS"),
+        ~pp.CaselessKeyword("CURRENT_DATE"),
+        ~pp.CaselessKeyword("CURRENT_TIMESTAMP"),
+        ~pp.CaselessKeyword("UNIX_TIMESTAMP"),
+        ~pp.CaselessKeyword("FROM_UNIXTIME"),
+        ~pp.CaselessKeyword("TO_DATE"),
+        ~pp.CaselessKeyword("ROW_NUMBER"),
+        ~pp.CaselessKeyword("ROW_NUMBER()"),
         # data types
         ~pp.CaselessKeyword("INT"),
         ~pp.CaselessKeyword("FLOAT"),
@@ -79,4 +86,4 @@ special_words_list = [
     "OR",
 ]
 
-special_char_name = "_}{$:\"\'-"
+special_char_name = "_}{$:\"\'-*"

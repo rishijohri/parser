@@ -9,6 +9,21 @@ case_column_tests = [
                 ELSE d END 
             ELSE e END""",
             '''
+case when acc = 0 and trim(acc) in ('C', 'D') and acc = '1' and acc >=20-19 then
+    case when acc is not null then 
+            case when TRIM(acc)='c' then 'c'
+                when TRIM(acc)='d' and (acc = 1 or acc<>0 or acc='ST') then 'f'
+                else 'c'
+            end 
+         when acc is null then 
+            case (acc = 0 and acc <>'ST') and TRIM(acc) = 'X' then 'X'
+            when (acc<>0 or acc = 'ST') and TRIM(acc) = 'X' then 'X'
+            else trim(acc)
+        end  
+    else trim(acc) 
+end
+            ''',
+            '''
 case
         when column4 = 5 AND column45 = 25 then 1
         when c.column4 is 6 then 2
@@ -27,16 +42,14 @@ column_tests = [
 ]
 
 all_condition_tests = [
+    '''acc is not null''',
     '''(x = "${hiveconf:start_dt}" and y = "${hiveconf:end_dt}")''',
-    '''(
-        x = "${hiveconf:start_date}" and y = "${hiveconf:end_date}"
-        ) or 
-        (
-            x = "${hiveconf:start_dt}" and 
+    '''( x = "${hiveconf:start_date}" and y = "${hiveconf:end_date}") or 
+        ( x = "${hiveconf:start_dt}" and 
             ( 
                 y = "${hiveconf:end_dt} and z = "${hiveconf:z}"
             ) 
-        )''',
+        )'''
 ]
 
 join_tests = [
@@ -64,5 +77,20 @@ basic_table_tests = [
         from
             sourc4.table1
             where column4 = "NANAMI"
+    '''
+]
+
+row_num_col_tests = [
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2 desc) as row_num
     '''
 ]

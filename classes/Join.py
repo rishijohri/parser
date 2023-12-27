@@ -37,11 +37,15 @@ class Join:
         query = ""
         query += "( SELECT "
         for column in self.sub_query.columns:
-            query += column.definition[0].name[0] + ", "
+            if hasattr(column, "definition"):
+                query += column.definition[0].name[0] + ", "
+            elif hasattr(column, "column_alias"):
+                query += column.column_alias[0][1] + ", "
         query = query[:-2]
         query += " FROM " + self.database + "." + self.name
         if self.sub_query_condition != None:
-            query += " WHERE " + self.sub_query_condition.recreate_query() + " ) "
+            query += " WHERE " + self.sub_query_condition.recreate_query()
+        query += " ) "
         return query
     
     def recreate_query(self, tabs=""):
