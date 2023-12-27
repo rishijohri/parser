@@ -35,13 +35,7 @@ from
             sourc4.table1
             where column4 = "NANAMI"
     ) c on a.column1 = c.column1
-WHERE
-    (
-        column1 in (1, 2, 3)
-        AND (
-            b.column2 = 2
-            or colym6 <> 7
-        )
-    )
+WHERE avacado in (4,2 ,2 ,7)
+and avado between addition and subtraction
     OR (column1 = 3)
     OR (column3 = 2);

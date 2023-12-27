@@ -9,7 +9,8 @@ default_test_cases = {
     "join": False,
     "table": False,
     "query": False,
-    "row_num_col": True,
+    "print_query": True,
+    "print_result": True,
 }
 
 parse_create_query('', default_test_cases)

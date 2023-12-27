@@ -28,6 +28,9 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("NOT"),
         ~pp.CaselessKeyword("AND"),
         ~pp.CaselessKeyword("OR"),
+        ~pp.CaselessKeyword("BETWEEN"),
+        ~pp.CaselessKeyword("INTERVAL"),
+        ~pp.CaselessKeyword("EXISTS"),
         # functions
         ~pp.CaselessKeyword("SUM"),
         ~pp.CaselessKeyword("AVG"),

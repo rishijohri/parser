@@ -37,7 +37,8 @@ default_test_cases = {
     "join": False,
     "table": False,
     "query": False,
-    "row_num_col": False,
+    "print_query": False,
+    "print_result": False,
 }
 
 
@@ -112,7 +113,7 @@ def parse_create_query(query, default_chk=default_test_cases):
             ]
         )
     ).setResultsName("create")
-    
+
     column_alias = pp.Optional(
         pp.Group(pp.CaselessKeyword("AS") + allowed_name)
     ).setResultsName("column_alias")
@@ -121,6 +122,12 @@ def parse_create_query(query, default_chk=default_test_cases):
         pp.Optional(pp.CaselessKeyword("AS")) + allowed_name
     ).setResultsName("table_alias")
 
+    # Table grammer
+    table_grammer = pp.Group(
+        pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
+        + allowed_name.setResultsName("table_name")
+        + table_alias
+    ).setResultsName("table_def")
     multi_argu_func = (
         pp.CaselessKeyword("SUM")
         | pp.CaselessKeyword("AVG")
@@ -178,38 +185,34 @@ def parse_create_query(query, default_chk=default_test_cases):
         + pp.delimitedList(column, delim=",").setResultsName("partition_by")
         + pp.CaselessKeyword("ORDER BY")
         + pp.delimitedList(column, delim=",").setResultsName("order_by")
-        + pp.MatchFirst([pp.Optional(pp.CaselessKeyword("DESC")), pp.CaselessKeyword("ASC")]).setResultsName("order")
+        + pp.MatchFirst(
+            [pp.Optional(pp.CaselessKeyword("DESC")), pp.CaselessKeyword("ASC")]
+        ).setResultsName("order")
         + pp.Suppress(")")
     ).setResultsName("row_num_col")
     column << pp.MatchFirst(  # type: ignore
-        [row_num_col, base_column, multi_argu_column]
+        [base_column, multi_argu_column]
     )
     column = pp.OneOrMore(column).setResultsName("definition")
 
-    if default_chk["column"]:
-        print("Column Test")
-        for test in test_cases.column_tests:
-            print(test)
-            print(column.parseString(test).asDict())
-
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
-    comparator = (
+    equality_comparator = (
         pp.Word("=<>")
         | pp.CaselessKeyword("IS NOT LIKE")
         | pp.CaselessKeyword("IS NOT")
         | pp.CaselessKeyword("NOT LIKE")
         | pp.CaselessKeyword("LIKE")
-        | pp.CaselessKeyword("IS") 
+        | pp.CaselessKeyword("IS")
         | pp.CaselessKeyword("NOT")
     )
-    assert isinstance(comparator, pp.ParserElement)
+    assert isinstance(equality_comparator, pp.ParserElement)
 
     equality_condition = pp.Group(
         pp.And(
             [
                 column.setResultsName("LHS"),
-                comparator.setResultsName("comparator"),
+                equality_comparator.setResultsName("comparator"),
                 column.setResultsName("RHS"),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]
@@ -236,7 +239,27 @@ def parse_create_query(query, default_chk=default_test_cases):
             ]
         )
     )
-    condition_clause = pp.MatchFirst([equality_condition, in_condition_clause])
+
+    range_comparator = pp.CaselessKeyword("BETWEEN") | pp.CaselessKeyword("NOT BETWEEN")
+    assert isinstance(range_comparator, pp.ParserElement)
+
+    between_condition_clause = pp.Group(
+        pp.And(
+            [
+                column.setResultsName("LHS"),
+                range_comparator.setResultsName("comparator"),
+                pp.Optional(pp.Suppress("(")),
+                column.setResultsName("RHS1"),
+                pp.CaselessKeyword("AND"),
+                column.setResultsName("RHS2"),
+                pp.Optional(pp.Suppress(")")),
+                pp.Optional(delimiter).setResultsName("delimiter"),
+            ]
+        )
+    )
+    condition_clause = pp.Or(
+        [equality_condition, between_condition_clause, in_condition_clause]
+    )
 
     condition_group = pp.Forward()
     condition_group << pp.OneOrMore(  # type: ignore
@@ -252,12 +275,6 @@ def parse_create_query(query, default_chk=default_test_cases):
             ]
         )
     ).setResultsName("condition_group")
-
-    if default_chk["condition"]:
-        print("Condition Test")
-        for test in test_cases.all_condition_tests:
-            print(test)
-            print(condition_group.parseString(test))
 
     case_column = pp.Forward()
     # Case statement grammer
@@ -281,30 +298,16 @@ def parse_create_query(query, default_chk=default_test_cases):
         + pp.Optional(pp.Keyword(")"))
     ).setResultsName("case_column")
 
-    if default_chk["case_column"]:
-        print("Case Column Test")
-        for test in test_cases.case_column_tests:
-            print(test)
-            pprint(case_column.parseString(test).asDict())
-
-    # row number column grammar
-
-
     # Column Set grammar
     column_definition = pp.Group(
         pp.MatchFirst([row_num_col, column, case_column]) + column_alias
     ).setResultsName("column_def")
-    
+
     columns = pp.delimitedList(column_definition, delim=",").setResultsName("columns")
 
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
 
-    # Table grammer
-    table_grammer = pp.Group(
-        pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
-        + allowed_name.setResultsName("table_name")
-        + table_alias
-    ).setResultsName("table_def")
+    
 
     # Where clause grammer
     where_clause = pp.Group(pp.CaselessKeyword("WHERE") + condition_group)
@@ -315,12 +318,6 @@ def parse_create_query(query, default_chk=default_test_cases):
         + pp.Optional(where_clause).setResultsName("where")
     )
     assert isinstance(query_grammar, pp.ParserElement)
-
-    if default_chk["query"]:
-        print("Basic Table Test")
-        for test in test_cases.basic_table_tests:
-            print(test)
-            pprint(query_grammar.parseString(test).asDict())
 
     # Join clause grammer
     sub_query = pp.Group(
@@ -345,12 +342,6 @@ def parse_create_query(query, default_chk=default_test_cases):
         + pp.CaselessKeyword("ON")
         + condition_group
     )
-
-    if default_chk["join"]:
-        print("Join Test")
-        for test in test_cases.join_tests:
-            print(test)
-            pprint(join_clause.parseString(test).asDict())
 
     # Group by clause grammer
     group_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("GROUP BY")) + columns)
@@ -385,10 +376,44 @@ def parse_create_query(query, default_chk=default_test_cases):
             pp.Optional(pp.Literal(";")),
         ]
     )
-
+    if default_chk["print_query"]:
+        print("Query")
+        print(query)
+    if default_chk["column"]:
+        print("Column Test")
+        for test in test_cases.column_tests:
+            print(test)
+            pprint(column.parseString(test).asDict())
+        print("Column Test End")
+    if default_chk["condition"]:
+        print("Condition Test")
+        for test in test_cases.all_condition_tests:
+            print(test)
+            pprint(condition_group.parseString(test).asDict())
+        print("Condition Test End")
+    if default_chk["query"]:
+        print("Basic Table Test")
+        for test in test_cases.basic_table_tests:
+            print(test)
+            pprint(query_grammar.parseString(test).asDict())
+        print("Basic Table Test End")
+    if default_chk["join"]:
+        print("Join Test")
+        for test in test_cases.join_tests:
+            print(test)
+            pprint(join_clause.parseString(test).asDict())
+        print("Join Test End")
+    if default_chk["case_column"]:
+        print("Case Column Test")
+        for test in test_cases.case_column_tests:
+            print(test)
+            pprint(case_column.parseString(test).asDict())
+        print("Case Column Test End")
     parsed_query = query_parser.parseString(query)
     parsed_dict = parsed_query.asDict()
-    pprint(parsed_dict)
+    if default_chk["print_result"]:
+        print("Parsed Query")
+        pprint(parsed_dict)
     parsed_dict = dict_to_obj(parsed_dict)
     table_data = Table()
     table_data.data_entry(parsed_dict)

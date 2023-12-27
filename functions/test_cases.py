@@ -49,7 +49,8 @@ all_condition_tests = [
             ( 
                 y = "${hiveconf:end_dt} and z = "${hiveconf:z}"
             ) 
-        )'''
+        )''',
+    '''acado between 1 and 2'''
 ]
 
 join_tests = [

@@ -135,7 +135,7 @@ class Table:
             elif hasattr(column, "column_alias"):
                 query += column.column_alias[0][1] + ", "
         query = query[:-2]
-        query += " FROM " + self.database + "." + self.name
+        query += " FROM " + self.source_database + "." + self.source_table
         if self.sub_query_condition != None:
             query += " WHERE " + self.sub_query_condition.recreate_query()
         query += " ) "

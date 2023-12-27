@@ -14,5 +14,4 @@ END AS column45
 FROM ( SELECT column1, column3, column4, row_num FROM sdb.source2 ) 
 LEFT JOIN Default.source3 b ON a.column1 = source3.column56 AND  a.column2 = source3.column2
 LEFT JOIN ( SELECT column1, column2, column3 FROM sourc4.table1 WHERE column4 = "NANAMI" )  c ON a.column1 = table1.column1
-WHERE (source.column1 IN (1, 2, 3)  AND  (source3.column2 = 2 OR  source.colym6 <> 7)  ) OR (source.column1 = 3) OR (source.column3 = 2)  
 ;
