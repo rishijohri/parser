@@ -74,8 +74,13 @@ def comment_remover(query):
 def parse_create_query(query, default_chk=default_test_cases):
     # define grammer
     # ALias Grammar
+    quoted_string = pp.Or([
+    pp.originalTextFor(pp.QuotedString('"')),
+    pp.originalTextFor(pp.QuotedString("'"))
+    ])
+
     allowed_name: pp.ParserElement = pp.And(
-        [special_words, pp.Word(pp.alphanums + special_char_name)]
+        [special_words, quoted_string | pp.Word(pp.alphanums + special_char_name)]
     )
     assert isinstance(allowed_name, pp.ParserElement)
 
@@ -128,6 +133,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         + allowed_name.setResultsName("table_name")
         + table_alias
     ).setResultsName("table_def")
+
     multi_argu_func = (
         pp.CaselessKeyword("SUM")
         | pp.CaselessKeyword("AVG")
@@ -157,6 +163,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     assert isinstance(data_types, pp.ParserElement)
     # Base column Grammar (Column can have aggregation function)
     column = pp.Forward()
+    
     base_column = pp.Group(
         pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
         + allowed_name.setResultsName("name")
@@ -180,15 +187,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     row_num_col = pp.Group(
         pp.CaselessKeyword("ROW_NUMBER()")
         + pp.CaselessKeyword("OVER")
-        + pp.Suppress("(")
-        + pp.CaselessKeyword("PARTITION BY")
-        + pp.delimitedList(column, delim=",").setResultsName("partition_by")
-        + pp.CaselessKeyword("ORDER BY")
-        + pp.delimitedList(column, delim=",").setResultsName("order_by")
-        + pp.MatchFirst(
-            [pp.Optional(pp.CaselessKeyword("DESC")), pp.CaselessKeyword("ASC")]
-        ).setResultsName("order")
-        + pp.Suppress(")")
+        +pp.nestedExpr("(", ")").setResultsName("partition_by")
     ).setResultsName("row_num_col")
     column << pp.MatchFirst(  # type: ignore
         [base_column, multi_argu_column]
@@ -415,14 +414,14 @@ def parse_create_query(query, default_chk=default_test_cases):
     return table_data
 
 
-def read_script(file_path):
+def read_script(file_path, default_query_chk=default_test_cases):
     tables = []
     with open(file_path, "r") as f:
         main_query = f.read()
         queries = separate_queries(main_query)
         queries = query_type_check(queries)
         for query in queries:
-            table = parse_create_query(query)
+            table = parse_create_query(query, default_query_chk)
             tables.append(table)
 
     return tables

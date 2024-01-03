@@ -6,9 +6,9 @@ SELECT
     MIN(b.column3),
     column4,
     case
-        when b.column4 = 'OK' then Case
+        when b.column4 = 'Ops' then Case
             when column4 = 1 then 1 - 7
-            when column4 = 2 then 2
+            when column4 = 2 then "OK GOOGLE"
             when column4 = 3 then 2
             else 4
         end
@@ -22,7 +22,7 @@ from
     column1,
     column3,
     column4,
-    row_number() OVER (PARTITION BY column1 ORDER BY column2 DESC) AS row_num
+    row_number() OVER (PARTITION BY column1 ORDER BY column2 column3 ASC) AS row_num
     from sdb.source) a
     LEFT JOIN source3 b on a.column1 = b.column56
     and a.column2 = b.column2

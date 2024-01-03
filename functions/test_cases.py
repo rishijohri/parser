@@ -39,6 +39,16 @@ column_tests = [
     '''MAX(source.column2) - MAX(source.column4) + source1''',
     '''CAST(NULL as INT)''',
     '''CAST(source.column2 AS INT)''',
+    '''row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2 desc) as row_num
+    '''
 ]
 
 all_condition_tests = [
@@ -84,16 +94,5 @@ basic_table_tests = [
 ]
 
 row_num_col_tests = [
-    '''
-    row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''
-    row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''
-    row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''
-    row_number() over (partition by column1 order by column2 desc) as row_num
-    '''
+    
 ]

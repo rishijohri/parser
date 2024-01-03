@@ -1,5 +1,5 @@
 CREATE TABLE sdb.source2 AS 
-SELECT  AS row_num
+SELECT ROW_NUMBER() OVER ( partition by column1 order by column2 DESC ) AS row_num
 
 FROM ( SELECT column1, column3, column4, row_num FROM sdb.source ) 
 LEFT JOIN Default.source3 b ON a.column1 = source3.column56 AND  a.column2 = source3.column2

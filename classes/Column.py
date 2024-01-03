@@ -5,6 +5,14 @@ from .Condition import Condition
 from typing import Any
 from .NewCondition import NewCondition
 from pprint import pprint
+from types import SimpleNamespace
+def namespace_to_dict(obj):
+    if isinstance(obj, SimpleNamespace):
+        return {k: namespace_to_dict(v) for k, v in vars(obj).items()}
+    elif isinstance(obj, list):
+        return [namespace_to_dict(v) for v in obj]
+    else:
+        return obj
 
 class CaseResult:
     def __init__(self, parsed_dict: Any, alias_names=[], alias_list=[]):
@@ -80,6 +88,7 @@ class Column:
         self.source_tables = []
         self.alias = parsed_dict.column_alias[0][1] if hasattr(parsed_dict, "column_alias") else ""
         self.definition = parsed_dict.definition if hasattr(parsed_dict, "definition") else []
+        self.row_number = " ".join(parsed_dict.row_num_col.partition_by[0]) if hasattr(parsed_dict, "row_num_col") else ""
         for definition in self.definition:
             self.source_columns.append(BaseColumn(definition, alias_names, alias_list))
         if len(self.source_columns) == 1:
@@ -106,7 +115,7 @@ class Column:
         
         self.source_aliases = list(set(self.source_aliases))
         self.source_tables = list(set(self.source_tables))
-
+        # pprint(namespace_to_dict(self.meta_data))
     def recreate_query(self):
         """
         Recreate the query for the column
@@ -117,7 +126,8 @@ class Column:
         else:
             for source_column in self.source_columns:
                 query += source_column.recreate_query()
-
+        if self.row_number != "":
+            query = "ROW_NUMBER() OVER ( " + self.row_number + " )"
         if self.alias != "":
             query += " AS " + self.alias + "\n"
         return query

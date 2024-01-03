@@ -49,7 +49,7 @@ class BaseColumn:
                 value_result = value_grammar.parseString(self.name) # any value means it is not a column
             except:
                 pass
-            if value_result != [] or self.name.lower() in ["true", "false", "null"]:
+            if value_result != [] or self.name.lower() in ["true", "false", "null"] :
                 self.real_column = False
         
         if self.real_column:

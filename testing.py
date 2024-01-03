@@ -2,9 +2,9 @@ from functions.parse_mk3 import parse_create_query
 
 
 default_test_cases = {
-    "column": False,
+    "column": True,
     "case_column": False,
-    "condition": True,
+    "condition": False,
     "create": False,
     "join": False,
     "table": False,
