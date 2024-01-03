@@ -21,9 +21,10 @@ class BaseColumn:
             self.false_column = True
         self.real_column = True
         self.meta_data = parsed_dict
-        
+        self.argument_func = parsed_dict.base_func if hasattr(parsed_dict, "base_func") else ""
+        self.base_func = hasattr(parsed_dict, "base_func")
         self.argument_func = (
-            parsed_dict.aggregate_func if hasattr(parsed_dict, "aggregate_func") else ""
+            parsed_dict.aggregate_func if hasattr(parsed_dict, "aggregate_func") else self.argument_func
         )
         self.arguments = (
             parsed_dict.arguments if hasattr(parsed_dict, "arguments") else ""
@@ -90,7 +91,7 @@ class BaseColumn:
         if self.real_column==False:
             query += self.name
             return query
-        if self.argument_func != "":
+        if self.argument_func != "" and self.base_func==False:
             query += self.argument_func + "("
             if self.col_argument != None:
                 query += self.col_argument.recreate_query()
@@ -101,6 +102,8 @@ class BaseColumn:
                     query += ", " + argument
             query += ")"
         else:
+            if self.base_func:
+                query += self.argument_func + " "
             if self.source_table != "" and self.real_column:
                 query += self.source_table + "."
             elif self.source_alias != "" and self.real_column:

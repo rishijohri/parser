@@ -17,7 +17,7 @@ tables = []
 file_path = "code/single_query.sql"
 to_print = True
 table_name = "source2"
-column_name = ["row_num"]
+column_name = ["column2"]
 with open(file_path, "r"):
     print("reading file")
     tables = read_script(file_path, default_test_cases)

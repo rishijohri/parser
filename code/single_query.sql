@@ -2,7 +2,7 @@ CREATE TABLE
     sdb.source2 AS
 SELECT
     a.column1 - DATE_FORMAT (MAX(a.column4), "dd-mm-yyyy") as whatever,
-    b.column2,
+    ADD_MONTHS(b.column2, -6) as column2,
     MIN(b.column3),
     column4,
     case

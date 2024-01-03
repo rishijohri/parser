@@ -111,6 +111,9 @@ def parse_create_query(query, default_chk=default_test_cases):
                             pp.CaselessKeyword(
                                 'STORED AS ORC TBLPROPERTIES ("orc.compress"="ZSTD")'
                             ),
+                            pp.CaselessKeyword(
+                                "STORED AS ORC TBLPROPERTIES('orc.compress'='NONE')"
+                            ),
                         ]
                     )
                 ),
@@ -150,6 +153,10 @@ def parse_create_query(query, default_chk=default_test_cases):
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
+    base_function = (
+        pp.CaselessKeyword("DISTINCT")
+    )
+    assert isinstance(base_function, pp.ParserElement)
     data_types = (
         pp.CaselessKeyword("INT")
         | pp.CaselessKeyword("FLOAT")
@@ -165,7 +172,8 @@ def parse_create_query(query, default_chk=default_test_cases):
     column = pp.Forward()
     
     base_column = pp.Group(
-        pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
+        pp.Optional(base_function).setResultsName("base_func")
+        + pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
         + allowed_name.setResultsName("name")
         + pp.Optional(pp.Word("+-*/").setResultsName("operator"))
     )

@@ -51,6 +51,13 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("TO_DATE"),
         ~pp.CaselessKeyword("ROW_NUMBER"),
         ~pp.CaselessKeyword("ROW_NUMBER()"),
+        ~pp.CaselessKeyword("OVER"),
+        ~pp.CaselessKeyword("PARTITION"),
+        ~pp.CaselessKeyword("BY"),
+        ~pp.CaselessKeyword("ORDER"),
+        ~pp.CaselessKeyword("ASC"),
+        ~pp.CaselessKeyword("DESC"),
+        ~pp.CaselessKeyword("DISTINCT"),
         # data types
         ~pp.CaselessKeyword("INT"),
         ~pp.CaselessKeyword("FLOAT"),
