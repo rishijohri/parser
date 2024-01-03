@@ -166,6 +166,13 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("STRING")
         | pp.CaselessKeyword("VARCHAR")
         | pp.CaselessKeyword("CHAR")
+        | pp.CaselessKeyword("BIGINT")
+        | pp.CaselessKeyword("BOOLEAN")
+        | pp.CaselessKeyword("DECIMAL")
+        | pp.CaselessKeyword("TINYINT")
+        | pp.CaselessKeyword("SMALLINT")
+        | pp.CaselessKeyword("BINARY")
+        
     )
     assert isinstance(data_types, pp.ParserElement)
     # Base column Grammar (Column can have aggregation function)
@@ -179,7 +186,8 @@ def parse_create_query(query, default_chk=default_test_cases):
     )
 
     multi_argu_column: pp.ParserElement = pp.Group(
-        multi_argu_func.setResultsName("aggregate_func")
+        pp.Optional(base_function).setResultsName("base_func")
+        + multi_argu_func.setResultsName("aggregate_func")
         + pp.Suppress("(")
         + column.setResultsName("col_argument")
         + pp.Optional(
@@ -410,6 +418,7 @@ def parse_create_query(query, default_chk=default_test_cases):
             print(test)
             pprint(case_column.parseString(test).asDict())
         print("Case Column Test End")
+    table_data = Table()
     try:
         parsed_query = query_parser.parseString(query)
         parsed_dict = parsed_query.asDict()
@@ -417,13 +426,14 @@ def parse_create_query(query, default_chk=default_test_cases):
             print("Parsed Query")
             pprint(parsed_dict)
         parsed_dict = dict_to_obj(parsed_dict)
-        table_data = Table()
         table_data.data_entry(parsed_dict)
         print("completed: ", table_data.name)
     except Exception as e:
         print("Error in parsing query")
         print(query)
         print(e)
+        open("errors/error.sql", "w").write(query)
+        raise e
     return table_data
 
 
