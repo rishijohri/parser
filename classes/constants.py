@@ -87,6 +87,9 @@ special_words_list = [
     "IN",
     "AND",
     "OR",
+    "=",
+    " ",
+    ""
 ]
 
 special_char_name = "_}{$:\"\'-*"

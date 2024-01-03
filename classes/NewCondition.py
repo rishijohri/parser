@@ -46,7 +46,7 @@ class NewCondition:
                     self.source_columns.append(base_column)
             self.comparator = parsed_dict.comparator if hasattr(parsed_dict, "comparator") else "##"
             if self.comparator.lower() == "in":
-                self.RHS = parsed_dict.RHS
+                self.RHS = parsed_dict.RHS[0]
             elif self.comparator.lower() == "between":
                 base_column__rhs1 = BaseColumn(parsed_dict.RHS1[0], alias_names, alias_list)
                 base_column__rhs2 = BaseColumn(parsed_dict.RHS2[0], alias_names, alias_list)
@@ -74,6 +74,12 @@ class NewCondition:
     def __str__(self):
         pprint(self.meta_data) 
 
+    def recreate_sub_query(self, tabs=""):
+        query = ""
+        for word in self.RHS:
+            assert(isinstance(word, str))
+            query += word + " "
+        return query
     def recreate_query(self, tabs=""):
         query = ""
         if self.leaf_condition:
@@ -81,7 +87,11 @@ class NewCondition:
                 query += self.LHS[i].recreate_query()
             query += " "+self.comparator + " "
             if self.comparator.lower() == "in":
-                query += "(" + ", ".join(self.RHS) + ") " # type: ignore
+                assert(isinstance(self.RHS, list))
+                if type(self.RHS[0])==str and self.RHS[0].lower() == "select":
+                    query += "(" + self.recreate_sub_query() + ") "
+                else:
+                    query += "(" + ", ".join(self.RHS) + ") " # type: ignore
             elif self.comparator.lower() == "between":
                 query += self.RHS[0].recreate_query() + " AND " + self.RHS[1].recreate_query()
             else:

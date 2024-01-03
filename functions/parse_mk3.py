@@ -220,20 +220,14 @@ def parse_create_query(query, default_chk=default_test_cases):
     )
     in_comparator = pp.CaselessKeyword("IN") | pp.CaselessKeyword("NOT IN")
     assert isinstance(in_comparator, pp.ParserElement)
-
+    paranthesis_expression = pp.nestedExpr("(", ")")
     in_condition_clause = pp.Group(
         pp.And(
             [
                 column.setResultsName("LHS"),
                 in_comparator.setResultsName("comparator"),
                 pp.Group(
-                    pp.And(
-                        [
-                            pp.Suppress("("),
-                            pp.delimitedList(allowed_name),
-                            pp.Suppress(")"),
-                        ]
-                    )
+                    paranthesis_expression
                 ).setResultsName("RHS"),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]

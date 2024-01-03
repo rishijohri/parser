@@ -50,7 +50,9 @@ all_condition_tests = [
                 y = "${hiveconf:end_dt} and z = "${hiveconf:z}"
             ) 
         )''',
-    '''acado between 1 and 2'''
+    '''acado between 1 and 2''',
+    '''something in (avacado, orange, ab3s)'''
+    '''something in (select id from source1.table1)''',
 ]
 
 join_tests = [

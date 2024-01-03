@@ -35,7 +35,7 @@ from
             sourc4.table1
             where column4 = "NANAMI"
     ) c on a.column1 = c.column1
-WHERE avacado in (4,2 ,2 ,7)
+WHERE avacado in (select machete, abc from table2 where column1 = 1)
 and avado between addition and subtraction
     OR (column1 = 3)
     OR (column3 = 2);
