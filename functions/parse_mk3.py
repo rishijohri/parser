@@ -410,15 +410,20 @@ def parse_create_query(query, default_chk=default_test_cases):
             print(test)
             pprint(case_column.parseString(test).asDict())
         print("Case Column Test End")
-    parsed_query = query_parser.parseString(query)
-    parsed_dict = parsed_query.asDict()
-    if default_chk["print_result"]:
-        print("Parsed Query")
-        pprint(parsed_dict)
-    parsed_dict = dict_to_obj(parsed_dict)
-    table_data = Table()
-    table_data.data_entry(parsed_dict)
-
+    try:
+        parsed_query = query_parser.parseString(query)
+        parsed_dict = parsed_query.asDict()
+        if default_chk["print_result"]:
+            print("Parsed Query")
+            pprint(parsed_dict)
+        parsed_dict = dict_to_obj(parsed_dict)
+        table_data = Table()
+        table_data.data_entry(parsed_dict)
+        print("completed: ", table_data.name)
+    except Exception as e:
+        print("Error in parsing query")
+        print(query)
+        print(e)
     return table_data
 
 
