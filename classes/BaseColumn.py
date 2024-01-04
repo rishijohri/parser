@@ -107,7 +107,8 @@ class BaseColumn:
             elif self.source_alias != "" and self.real_column:
                 query += self.source_alias + "."
             query += self.name
-        query += self.operator
+        if self.operator != "":
+            query += " " + self.operator
         return query
 
     def __eq__(self, __value: object) -> bool:

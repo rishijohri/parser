@@ -2,7 +2,7 @@ import pyparsing as pp
 from .ConditionGroup import ConditionGroup
 from .BaseColumn import BaseColumn
 from .Condition import Condition
-from typing import Any
+from typing import Any, Union
 from .NewCondition import NewCondition
 from pprint import pprint
 from types import SimpleNamespace
@@ -84,18 +84,23 @@ class Column:
         '''
         self.meta_data = parsed_dict
         self.source_columns: list[BaseColumn] = []
+        self.source_expression: list[Union[str, BaseColumn]] = []
         self.source_aliases = []
         self.source_tables = []
         self.alias = parsed_dict.column_alias[0][1] if hasattr(parsed_dict, "column_alias") else ""
         self.definition = parsed_dict.definition if hasattr(parsed_dict, "definition") else []
+        self.definition_group = parsed_dict.definition_group if hasattr(parsed_dict, "definition_group") else []
         self.row_number = " ".join(parsed_dict.row_num_col.partition_by[0]) if hasattr(parsed_dict, "row_num_col") else ""
         for definition in self.definition:
-            self.source_columns.append(BaseColumn(definition, alias_names, alias_list))
+            if type(definition) == str:
+                self.source_expression.append(definition)
+            else:
+                base_column = BaseColumn(definition, alias_names, alias_list)
+                self.source_columns.append(base_column)
+                self.source_expression.append(base_column)
         if len(self.source_columns) == 1:
             self.name = self.source_columns[0].name
-        
-        if len(self.source_columns) == 1:
-            self.name = self.source_columns[0].name
+
         self.name = self.alias if self.alias != "" else self.name
 
         # handle case statement
@@ -109,7 +114,7 @@ class Column:
             self.source_tables += self.case.source_tables
 
         for source_column in self.source_columns:
-            if source_column.real_column:
+            if type(source_column) == BaseColumn and source_column.real_column:
                 self.source_aliases.append(source_column.source_alias)
                 self.source_tables.append(source_column.source_table)
         
@@ -124,8 +129,11 @@ class Column:
         if self.case_type:
             query += self.case.recreate_query()
         else:
-            for source_column in self.source_columns:
-                query += source_column.recreate_query()
+            for source_column in self.source_expression:
+                if type(source_column) == str:
+                    query += source_column + " "
+                elif type(source_column) == BaseColumn:
+                    query += source_column.recreate_query() 
         if self.row_number != "":
             query = "ROW_NUMBER() OVER ( " + self.row_number + " )"
         if self.alias != "":

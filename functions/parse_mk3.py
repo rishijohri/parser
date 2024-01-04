@@ -74,10 +74,12 @@ def comment_remover(query):
 def parse_create_query(query, default_chk=default_test_cases):
     # define grammer
     # ALias Grammar
-    quoted_string = pp.Or([
-    pp.originalTextFor(pp.QuotedString('"')),
-    pp.originalTextFor(pp.QuotedString("'"))
-    ])
+    quoted_string = pp.Or(
+        [
+            pp.originalTextFor(pp.QuotedString('"')),
+            pp.originalTextFor(pp.QuotedString("'")),
+        ]
+    )
 
     allowed_name: pp.ParserElement = pp.And(
         [special_words, quoted_string | pp.Word(pp.alphanums + special_char_name)]
@@ -153,9 +155,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
-    base_function = (
-        pp.CaselessKeyword("DISTINCT")
-    )
+    base_function = pp.CaselessKeyword("DISTINCT")
     assert isinstance(base_function, pp.ParserElement)
     data_types = (
         pp.CaselessKeyword("INT")
@@ -172,12 +172,11 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("TINYINT")
         | pp.CaselessKeyword("SMALLINT")
         | pp.CaselessKeyword("BINARY")
-        
     )
     assert isinstance(data_types, pp.ParserElement)
     # Base column Grammar (Column can have aggregation function)
-    column = pp.Forward()
-    
+    column_part = pp.Forward()
+
     base_column = pp.Group(
         pp.Optional(base_function).setResultsName("base_func")
         + pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
@@ -189,7 +188,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         pp.Optional(base_function).setResultsName("base_func")
         + multi_argu_func.setResultsName("aggregate_func")
         + pp.Suppress("(")
-        + column.setResultsName("col_argument")
+        + column_part.setResultsName("col_argument")
         + pp.Optional(
             (pp.Char(",") | pp.CaselessKeyword("AS"))
             + pp.delimitedList(allowed_name | data_types, delim=",").setResultsName(
@@ -203,12 +202,34 @@ def parse_create_query(query, default_chk=default_test_cases):
     row_num_col = pp.Group(
         pp.CaselessKeyword("ROW_NUMBER()")
         + pp.CaselessKeyword("OVER")
-        +pp.nestedExpr("(", ")").setResultsName("partition_by")
+        + pp.nestedExpr("(", ")").setResultsName("partition_by")
     ).setResultsName("row_num_col")
-    column << pp.MatchFirst(  # type: ignore
-        [base_column, multi_argu_column]
+
+    column_part << pp.MatchFirst(  # type: ignore
+        [
+            base_column,
+            multi_argu_column
+        ]
     )
-    column = pp.OneOrMore(column).setResultsName("definition")
+    column = pp.Forward()
+    column << pp.OneOrMore( # type: ignore
+        pp.MatchFirst([
+        column_part,
+        pp.Literal("(")
+        + column.setResultsName("definition_group")
+        + pp.Literal(")")
+        + pp.Optional(pp.Word("+-*/").setResultsName("operator_higher")),
+        ])
+    ).setResultsName("definition")
+    # column << pp.Or(
+    #     [  # type: ignore
+    #         pp.OneOrMore(column).setResultsName("definition"),
+    #         pp.Suppress("(")
+    #         + pp.OneOrMore(column).setResultsName("definition_group")
+    #         + pp.Suppress(")")
+    #         + pp.Optional(pp.Word("+-*/").setResultsName("operator_higher") + column),
+    #     ]
+    # ).setResultsName("column")
 
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
@@ -241,9 +262,7 @@ def parse_create_query(query, default_chk=default_test_cases):
             [
                 column.setResultsName("LHS"),
                 in_comparator.setResultsName("comparator"),
-                pp.Group(
-                    paranthesis_expression
-                ).setResultsName("RHS"),
+                pp.Group(paranthesis_expression).setResultsName("RHS"),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]
         )
@@ -257,16 +276,18 @@ def parse_create_query(query, default_chk=default_test_cases):
             [
                 column.setResultsName("LHS"),
                 range_comparator.setResultsName("comparator"),
-                pp.Or([
-                    pp.Suppress("(")
-                + column.setResultsName("RHS1")
-                + pp.Word(pp.alphas)
-                + column.setResultsName("RHS2")
-                + pp.Suppress(")"),
-                column.setResultsName("RHS1")
-                + pp.Word(pp.alphas)
-                + column.setResultsName("RHS2")
-                ]),
+                pp.Or(
+                    [
+                        pp.Suppress("(")
+                        + column.setResultsName("RHS1")
+                        + pp.Word(pp.alphas)
+                        + column.setResultsName("RHS2")
+                        + pp.Suppress(")"),
+                        column.setResultsName("RHS1")
+                        + pp.Word(pp.alphas)
+                        + column.setResultsName("RHS2"),
+                    ]
+                ),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]
         )
@@ -274,7 +295,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     condition_clause = pp.Or(
         [equality_condition, between_condition_clause, in_condition_clause]
     )
-    subquery_condition = pp.OneOrMore(condition_clause)
+
     condition_group = pp.Forward()
     condition_group << pp.OneOrMore(  # type: ignore
         pp.MatchFirst(
@@ -320,8 +341,6 @@ def parse_create_query(query, default_chk=default_test_cases):
     columns = pp.delimitedList(column_definition, delim=",").setResultsName("columns")
 
     column_clause = pp.CaselessKeyword("SELECT") + columns + pp.CaselessKeyword("FROM")
-
-    
 
     # Where clause grammer
     where_clause = pp.Group(pp.CaselessKeyword("WHERE") + condition_group)
