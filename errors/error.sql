@@ -4,7 +4,7 @@ SELECT
     a.column1 - DATE_FORMAT (MAX(a.column4), "dd-mm-yyyy") as whatever,
     ADD_MONTHS(b.column2, -6) + abc as column2,
     MIN(b.column3),
-    (column4 + column3) + (column3 + column4) as column4,
+    (column4/column3) * (column3 + column4) as column4,
     column5
 from
     (SELECT

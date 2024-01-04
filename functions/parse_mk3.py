@@ -116,6 +116,9 @@ def parse_create_query(query, default_chk=default_test_cases):
                             pp.CaselessKeyword(
                                 "STORED AS ORC TBLPROPERTIES('orc.compress'='NONE')"
                             ),
+                            pp.CaselessKeyword(
+                                "STORED AS ORC TBLPROPERTIES('orc.format'='NONE')"
+                            ),
                         ]
                     )
                 ),
@@ -152,6 +155,11 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("CAST")
         | pp.CaselessKeyword("DATE_FORMAT")
         | pp.CaselessKeyword("ADD_MONTHS")
+        | pp.CaselessKeyword("MONTH")
+        | pp.CaselessKeyword("CURRENT_DATE")
+        | pp.CaselessKeyword("YEAR")
+        | pp.CaselessKeyword("DAY")
+        | pp.CaselessKeyword("DATE")
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
@@ -191,7 +199,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         + column_part.setResultsName("col_argument")
         + pp.Optional(
             (pp.Char(",") | pp.CaselessKeyword("AS"))
-            + pp.delimitedList(allowed_name | data_types, delim=",").setResultsName(
+            + pp.delimitedList(column_part | data_types, delim=",").setResultsName(
                 "arguments"
             )
         )
@@ -344,20 +352,14 @@ def parse_create_query(query, default_chk=default_test_cases):
 
     # Where clause grammer
     where_clause = pp.Group(pp.CaselessKeyword("WHERE") + condition_group)
+    # Group by clause grammer
+    group_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("GROUP BY")) + columns)
+    # Limit clause grammer
+    limit_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("LIMIT")) + pp.Word(pp.nums))
 
-    query_grammar = (
-        column_clause
-        + table_grammer
-        + pp.Optional(where_clause).setResultsName("where")
-    )
-    assert isinstance(query_grammar, pp.ParserElement)
+    table_definition = pp.Forward()
 
-    # Join clause grammer
-    sub_query = pp.Group(
-        pp.Literal("(") + query_grammar + pp.Literal(")") + table_alias
-    ).setResultsName("sub_query")
-
-    table_definition = pp.MatchFirst([sub_query, table_grammer])
+    
     join_clause = pp.Group(
         pp.MatchFirst(
             [
@@ -376,14 +378,26 @@ def parse_create_query(query, default_chk=default_test_cases):
         + condition_group
     )
 
-    # Group by clause grammer
-    group_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("GROUP BY")) + columns)
+    query_grammar = (
+        column_clause
+        + table_definition
+        + pp.Optional(pp.OneOrMore(join_clause)).setResultsName("joins")
+        + pp.Optional(where_clause).setResultsName("where")
+        + pp.Optional(group_clause).setResultsName("group_by")
+        + pp.Optional(limit_clause).setResultsName("limit")
+    )
+    assert isinstance(query_grammar, pp.ParserElement)
+
+    # Join clause grammer
+    
+    sub_query = pp.Group(
+        pp.Literal("(") + query_grammar + pp.Literal(")") + table_alias
+    ).setResultsName("sub_query")
+
+    table_definition << pp.MatchFirst([sub_query, table_grammer])
 
     # Order by clause grammer
     order_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("ORDER BY")) + columns)
-
-    # Limit clause grammer
-    limit_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("LIMIT")) + pp.Word(pp.nums))
 
     # Final Query grammer
     assert type(create_clause) == pp.Group and create_clause is not None

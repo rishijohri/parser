@@ -12,6 +12,7 @@ from
     column3,
     column4
     from sdb.source
+    left join some_table on column1 = column2
     where something between 4 and 5 or abc = 33) a
     LEFT JOIN source3 b on a.column1 = b.column56
     where something between 4 and 5 and (

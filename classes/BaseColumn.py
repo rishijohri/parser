@@ -26,7 +26,7 @@ class BaseColumn:
             parsed_dict.aggregate_func if hasattr(parsed_dict, "aggregate_func") else ""
         )
         self.arguments = (
-            parsed_dict.arguments if hasattr(parsed_dict, "arguments") else ""
+            parsed_dict.arguments if hasattr(parsed_dict, "arguments") else []
         )
         self.operator = parsed_dict.operator if hasattr(parsed_dict, "operator") else ""
         self.name = parsed_dict.name[0] if hasattr(parsed_dict, "name") else ""
@@ -99,7 +99,7 @@ class BaseColumn:
                 query += " as " + self.arguments[0]
             else:
                 for argument in self.arguments:
-                    query += ", " + argument
+                    query += ", " + argument.name[0]
             query += ")"
         else:
             if self.source_table != "" and self.real_column:

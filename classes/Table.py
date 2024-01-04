@@ -80,11 +80,25 @@ class Table:
             self.source_alias =  parsed_dict.table_def.table_alias[0] if hasattr(parsed_dict.table_def, "table_alias") else ""
         elif hasattr(parsed_dict, "sub_query"):
             self.sub_query_chk = True
+            self.sub_query_joins = []
+            self.sub_query_group = []
             self.sub_query = parsed_dict.sub_query
             self.sub_query_condition: Union[NewCondition, None] = NewCondition(parsed_dict.sub_query.where[0]) if hasattr(parsed_dict.sub_query, "where") else None
+            self.sub_query_group_dict = parsed_dict.sub_query.group_by[0] if hasattr(parsed_dict.sub_query, "group_by") else None
+            self.sub_query_joins_dict = parsed_dict.sub_query.joins if hasattr(parsed_dict.sub_query, "joins") else None
             self.source_table = parsed_dict.sub_query.table_def.table_name[0]
             self.source_database = parsed_dict.sub_query.table_def.source[0] if hasattr(parsed_dict.sub_query.table_def, "source") else "Default"
             self.source_alias =  parsed_dict.sub_query.table_def.table_alias[0] if hasattr(parsed_dict.sub_query.table_def, "table_alias") else ""
+            if self.sub_query_joins_dict != None:
+                for join in self.sub_query_joins_dict:
+                    self.sub_query_joins.append(
+                        Join(
+                            parsed_dict=join
+                        )
+                    )
+            if self.sub_query_group_dict != None:
+                for column in self.sub_query_group_dict.columns:
+                    self.sub_query_group.append(Column(column, self.alias_names, self.alias_list))
         #Joins information
         if hasattr(parsed_dict, "joins"):
             for join in parsed_dict.joins:
@@ -136,8 +150,12 @@ class Table:
                 query += column.column_alias[0][1] + ", "
         query = query[:-2]
         query += " FROM " + self.source_database + "." + self.source_table
+        for join in self.sub_query_joins:
+            query += join.recreate_query()
         if self.sub_query_condition != None:
             query += " WHERE " + self.sub_query_condition.recreate_query()
+        if self.sub_query_group != None:
+            query += " GROUP BY " + self.sub_query_group
         query += " ) "
         return query
 
