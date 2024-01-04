@@ -59,6 +59,11 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("DAY"),
         ~pp.CaselessKeyword("YEAR"),
         ~pp.CaselessKeyword("DATE"),
+        ~pp.CaselessKeyword("DATE_ADD"),
+        ~pp.CaselessKeyword("DATE_SUB"),
+        ~pp.CaselessKeyword("DATE_DIFF"),
+        ~pp.CaselessKeyword("DATE_TRUNC"),
+        
         #expressions
         ~pp.CaselessKeyword("OVER"),
         ~pp.CaselessKeyword("PARTITION"),

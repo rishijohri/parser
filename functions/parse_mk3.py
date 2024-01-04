@@ -161,7 +161,10 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("DAY")
         | pp.CaselessKeyword("DATE")
         | pp.CaselessKeyword("CURRENT_TIMESTAMP")
-        | pp.CaselessKeyword("date_sub")
+        | pp.CaselessKeyword("DATE_ADD")
+        | pp.CaselessKeyword("DATE_SUB")
+        | pp.CaselessKeyword("DATE_DIFF")
+        | pp.CaselessKeyword("DATE_TRUNC")
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
