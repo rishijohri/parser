@@ -1,5 +1,5 @@
 CREATE TABLE sdb.source2 AS 
-SELECT CASE 
+SELECT MIN( CASE 
 WHEN  source3.column4 =  'Ops' THEN 
 	CASE 
 	WHEN  source.column4 =  1 THEN  1
@@ -9,7 +9,7 @@ WHEN  source3.column4 =  'Ops' THEN
 END
 WHEN  c.column4 =  4 THEN  2
 ELSE  3
-END AS column45
+END ) AS column45
 
 FROM ( SELECT column1, column3, column4 FROM sdb.source WHERE  something BETWEEN  4 AND  5 OR   abc =  33 ) 
 LEFT JOIN Default.source3 b ON  a.column1 =  source3.column56

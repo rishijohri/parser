@@ -81,7 +81,7 @@ class Table:
         elif hasattr(parsed_dict, "sub_query"):
             self.sub_query_chk = True
             self.sub_query_joins = []
-            self.sub_query_group = []
+            self.sub_query_group: list[Column] = []
             self.sub_query = parsed_dict.sub_query
             self.sub_query_condition: Union[NewCondition, None] = NewCondition(parsed_dict.sub_query.where[0]) if hasattr(parsed_dict.sub_query, "where") else None
             self.sub_query_group_dict = parsed_dict.sub_query.group_by[0] if hasattr(parsed_dict.sub_query, "group_by") else None
@@ -154,8 +154,6 @@ class Table:
             query += join.recreate_query()
         if self.sub_query_condition != None:
             query += " WHERE " + self.sub_query_condition.recreate_query()
-        if self.sub_query_group != None:
-            query += " GROUP BY " + self.sub_query_group
         query += " ) "
         return query
 

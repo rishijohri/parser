@@ -160,6 +160,8 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("YEAR")
         | pp.CaselessKeyword("DAY")
         | pp.CaselessKeyword("DATE")
+        | pp.CaselessKeyword("CURRENT_TIMESTAMP")
+        | pp.CaselessKeyword("date_sub")
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
@@ -184,7 +186,8 @@ def parse_create_query(query, default_chk=default_test_cases):
     assert isinstance(data_types, pp.ParserElement)
     # Base column Grammar (Column can have aggregation function)
     column_part = pp.Forward()
-
+    case_column = pp.Forward()
+    column = pp.Forward()
     base_column = pp.Group(
         pp.Optional(base_function).setResultsName("base_func")
         + pp.Optional(allowed_name.setResultsName("source") + pp.Suppress("."))
@@ -196,7 +199,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         pp.Optional(base_function).setResultsName("base_func")
         + multi_argu_func.setResultsName("aggregate_func")
         + pp.Suppress("(")
-        + column_part.setResultsName("col_argument")
+        + pp.Or([column_part, case_column]).setResultsName("col_argument")
         + pp.Optional(
             (pp.Char(",") | pp.CaselessKeyword("AS"))
             + pp.delimitedList(column_part | data_types, delim=",").setResultsName(
@@ -219,7 +222,7 @@ def parse_create_query(query, default_chk=default_test_cases):
             multi_argu_column
         ]
     )
-    column = pp.Forward()
+    
     column << pp.OneOrMore( # type: ignore
         pp.MatchFirst([
         column_part,
@@ -319,11 +322,10 @@ def parse_create_query(query, default_chk=default_test_cases):
         )
     ).setResultsName("condition_group")
 
-    case_column = pp.Forward()
+    
     # Case statement grammer
     case_column << pp.Group(  # type: ignore
-        pp.Optional(pp.Keyword("("))
-        + pp.CaselessKeyword("CASE")
+        pp.CaselessKeyword("CASE")
         + pp.OneOrMore(
             pp.Group(
                 pp.CaselessKeyword("WHEN")
@@ -338,7 +340,6 @@ def parse_create_query(query, default_chk=default_test_cases):
             ).setResultsName("else_case")
         )
         + pp.CaselessKeyword("END")
-        + pp.Optional(pp.Keyword(")"))
     ).setResultsName("case_column")
 
     # Column Set grammar
@@ -469,7 +470,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         print("Error in parsing query")
         print(query)
         print(e)
-        open("errors/error.sql", "w").write(query)
+        open("errors/error.hql", "w").write(query)
         raise e
     return table_data
 

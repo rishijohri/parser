@@ -87,6 +87,8 @@ class Column:
         self.source_expression: list[Union[str, BaseColumn]] = []
         self.source_aliases = []
         self.source_tables = []
+        self.aggregate_func = ""
+        self.case_type = False
         self.alias = parsed_dict.column_alias[0][1] if hasattr(parsed_dict, "column_alias") else ""
         self.definition = parsed_dict.definition if hasattr(parsed_dict, "definition") else []
         self.definition_group = parsed_dict.definition_group if hasattr(parsed_dict, "definition_group") else []
@@ -94,6 +96,12 @@ class Column:
         for definition in self.definition:
             if type(definition) == str:
                 self.source_expression.append(definition)
+            elif hasattr(definition, "case_column"):
+                self.case_type = True
+                self.case = CaseResult(definition.case_column, alias_names, alias_list)
+                self.source_columns += self.case.source_columns
+                self.source_tables += self.case.source_tables
+                self.aggregate_func = definition.aggregate_func if hasattr(definition, "aggregate_func") else "" 
             else:
                 base_column = BaseColumn(definition, alias_names, alias_list)
                 self.source_columns.append(base_column)
@@ -102,9 +110,8 @@ class Column:
             self.name = self.source_columns[0].name
 
         self.name = self.alias if self.alias != "" else self.name
-
         # handle case statement
-        self.case_type = False
+        
         self.conditions = []
         self.results = []
         if hasattr(parsed_dict, "case_column"):
@@ -127,7 +134,9 @@ class Column:
         """
         query = ""
         if self.case_type:
+            query += self.aggregate_func+"( " if self.aggregate_func != "" else ""
             query += self.case.recreate_query()
+            query += " )" if self.aggregate_func != "" else ""
         else:
             for source_column in self.source_expression:
                 if type(source_column) == str:
