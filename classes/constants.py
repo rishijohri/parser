@@ -67,12 +67,12 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("STRING"),
         ~pp.CaselessKeyword("VARCHAR"),
         ~pp.CaselessKeyword("CHAR"),
-        ~pp.CaselessKeyword("BIGINT")
-        ~pp.CaselessKeyword("BOOLEAN")
-        ~pp.CaselessKeyword("DECIMAL")
-        ~pp.CaselessKeyword("TINYINT")
-        ~pp.CaselessKeyword("SMALLINT")
-        ~pp.CaselessKeyword("BINARY")
+        ~pp.CaselessKeyword("BIGINT"),
+        ~pp.CaselessKeyword("BOOLEAN"),
+        ~pp.CaselessKeyword("DECIMAL"),
+        ~pp.CaselessKeyword("TINYINT"),
+        ~pp.CaselessKeyword("SMALLINT"),
+        ~pp.CaselessKeyword("BINARY"),
     ]
 )
 assert isinstance(special_words, pp.ParserElement)

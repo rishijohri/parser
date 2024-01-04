@@ -8,6 +8,19 @@ app = QApplication([])
 
 
 if __name__ == "__main__":
+
+    default_test_cases = {
+    "column": False,
+    "case_column": False,
+    "condition": False,
+    "create": False,
+    "join": False,
+    "table": False,
+    "query": False,
+    "print_query": False,
+    "print_result": False,
+    }
+
     display_text("Welcome to the SQL Query Parser\n Choose File to Parse")
     file_path, _ = QFileDialog.getOpenFileName(
         None, "Open file", "", "All files (*.*)"
@@ -15,7 +28,7 @@ if __name__ == "__main__":
 
     print("after file read")
     with open(file_path, "r"):
-        tables = read_script(file_path)
+        tables = read_script(file_path, default_test_cases)
         table_names = []
         for table in tables:
             table_names.append(table.name)

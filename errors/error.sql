@@ -22,8 +22,4 @@ from
     column3,
     column4
     from sdb.source
-    where something between 4 and 5 or abc = 33) a
-    LEFT JOIN source3 b on a.column1 = b.column56
-    where something between 4 and 5 and (
-        abc = 33 or bss = 32
-    )
+    where something between 4 and 5 ) or ab = 33 ;

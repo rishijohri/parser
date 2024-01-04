@@ -39,16 +39,6 @@ column_tests = [
     '''MAX(source.column2) - MAX(source.column4) + source1''',
     '''CAST(NULL as INT)''',
     '''CAST(source.column2 AS INT)''',
-    '''row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''
-    row_number() over (partition by column1 order by column2) as row_num
-    ''',
-    '''
-    row_number() over (partition by column1 order by column2 desc) as row_num
-    '''
 ]
 
 all_condition_tests = [
@@ -76,6 +66,7 @@ join_tests = [
 ]
 
 basic_table_tests = [
+    '''select column1 from source1.table1 t3''',
     '''
     SELECT a1 - a2 as aajj, a2, a3 from source1.table1 t3
     ''',
@@ -90,9 +81,29 @@ basic_table_tests = [
         from
             sourc4.table1
             where column4 = "NANAMI"
+    ''',
     '''
+    SELECT
+    column1,
+    column3,
+    column4,
+    row_number() OVER (PARTITION BY column1 ORDER BY column2 column3 ASC) AS row_num
+    from sdb.source
+    where something between gg and hadid
+'''
 ]
 
 row_num_col_tests = [
-    
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2) as row_num
+    ''',
+    '''
+    row_number() over (partition by column1 order by column2 desc) as row_num
+    '''
 ]

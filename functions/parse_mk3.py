@@ -257,11 +257,16 @@ def parse_create_query(query, default_chk=default_test_cases):
             [
                 column.setResultsName("LHS"),
                 range_comparator.setResultsName("comparator"),
-                pp.Optional(pp.Suppress("(")),
-                column.setResultsName("RHS1"),
-                pp.CaselessKeyword("AND"),
-                column.setResultsName("RHS2"),
-                pp.Optional(pp.Suppress(")")),
+                pp.Or([
+                    pp.Suppress("(")
+                + column.setResultsName("RHS1")
+                + pp.Word(pp.alphas)
+                + column.setResultsName("RHS2")
+                + pp.Suppress(")"),
+                column.setResultsName("RHS1")
+                + pp.Word(pp.alphas)
+                + column.setResultsName("RHS2")
+                ]),
                 pp.Optional(delimiter).setResultsName("delimiter"),
             ]
         )
@@ -269,7 +274,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     condition_clause = pp.Or(
         [equality_condition, between_condition_clause, in_condition_clause]
     )
-
+    subquery_condition = pp.OneOrMore(condition_clause)
     condition_group = pp.Forward()
     condition_group << pp.OneOrMore(  # type: ignore
         pp.MatchFirst(
@@ -363,7 +368,6 @@ def parse_create_query(query, default_chk=default_test_cases):
 
     # Final Query grammer
     assert type(create_clause) == pp.Group and create_clause is not None
-
     query_parser = pp.And(
         [
             create_clause,
