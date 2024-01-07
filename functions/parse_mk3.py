@@ -202,7 +202,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         pp.Optional(base_function).setResultsName("base_func")
         + multi_argu_func.setResultsName("aggregate_func")
         + pp.Suppress("(")
-        + pp.Or([column_part, case_column]).setResultsName("col_argument")
+        + pp.Or([column, case_column]).setResultsName("col_argument")
         + pp.Optional(
             (pp.Char(",") | pp.CaselessKeyword("AS"))
             + pp.delimitedList(column_part | data_types, delim=",").setResultsName(
@@ -220,20 +220,19 @@ def parse_create_query(query, default_chk=default_test_cases):
     ).setResultsName("row_num_col")
 
     column_part << pp.MatchFirst(  # type: ignore
-        [
-            base_column,
-            multi_argu_column
-        ]
+        [base_column, multi_argu_column]
     )
-    
-    column << pp.OneOrMore( # type: ignore
-        pp.MatchFirst([
-        column_part,
-        pp.Literal("(")
-        + column.setResultsName("definition_group")
-        + pp.Literal(")")
-        + pp.Optional(pp.Word("+-*/").setResultsName("operator_higher")),
-        ])
+
+    column << pp.OneOrMore(  # type: ignore
+        pp.MatchFirst(
+            [
+                column_part,
+                pp.Literal("(")
+                + column.setResultsName("definition_group")
+                + pp.Literal(")")
+                + pp.Optional(pp.Word("+-*/").setResultsName("operator_higher")),
+            ]
+        )
     ).setResultsName("definition")
     # column << pp.Or(
     #     [  # type: ignore
@@ -325,7 +324,6 @@ def parse_create_query(query, default_chk=default_test_cases):
         )
     ).setResultsName("condition_group")
 
-    
     # Case statement grammer
     case_column << pp.Group(  # type: ignore
         pp.CaselessKeyword("CASE")
@@ -363,7 +361,6 @@ def parse_create_query(query, default_chk=default_test_cases):
 
     table_definition = pp.Forward()
 
-    
     join_clause = pp.Group(
         pp.MatchFirst(
             [
@@ -393,12 +390,12 @@ def parse_create_query(query, default_chk=default_test_cases):
     assert isinstance(query_grammar, pp.ParserElement)
 
     # Join clause grammer
-    
+
     sub_query = pp.Group(
         pp.Literal("(") + query_grammar + pp.Literal(")") + table_alias
     ).setResultsName("sub_query")
 
-    table_definition << pp.MatchFirst([sub_query, table_grammer])
+    table_definition << pp.MatchFirst([sub_query, table_grammer])  # type: ignore
 
     # Order by clause grammer
     order_clause = pp.Group(pp.Suppress(pp.CaselessKeyword("ORDER BY")) + columns)

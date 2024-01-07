@@ -1,8 +1,8 @@
 CREATE TABLE
     sdb.source2 AS
 SELECT
-    a.column1 - DATE_FORMAT (MAX(a.column4), "dd-mm-yyyy") as whatever,
-    ADD_MONTHS(b.column2, -6) as column2,
+    a.column1 - DATE_FORMAT (MAX(a.column4), MIN(dd-mm-yyyy)) as whatever,
+    ADD_MONTHS(b.column2 + col1, 6) as column2,
     MIN(b.column3),
     (column4 + column3) / (column22 * 1000) as column4,
     MIN(case

@@ -89,6 +89,7 @@ class Column:
         self.source_tables = []
         self.aggregate_func = ""
         self.case_type = False
+        self.name = ""
         self.alias = parsed_dict.column_alias[0][1] if hasattr(parsed_dict, "column_alias") else ""
         self.definition = parsed_dict.definition if hasattr(parsed_dict, "definition") else []
         self.definition_group = parsed_dict.definition_group if hasattr(parsed_dict, "definition_group") else []
@@ -104,8 +105,10 @@ class Column:
                 self.aggregate_func = definition.aggregate_func if hasattr(definition, "aggregate_func") else "" 
             else:
                 base_column = BaseColumn(definition, alias_names, alias_list)
-                self.source_columns.append(base_column)
                 self.source_expression.append(base_column)
+                if base_column.real_column:
+                    self.source_columns.append(base_column)
+                    self.source_columns += base_column.source_columns
         if len(self.source_columns) == 1:
             self.name = self.source_columns[0].name
 
@@ -133,16 +136,16 @@ class Column:
         Recreate the query for the column
         """
         query = ""
+        query += self.aggregate_func+"( " if self.aggregate_func != "" else ""
         if self.case_type:
-            query += self.aggregate_func+"( " if self.aggregate_func != "" else ""
             query += self.case.recreate_query()
-            query += " )" if self.aggregate_func != "" else ""
         else:
             for source_column in self.source_expression:
                 if type(source_column) == str:
                     query += source_column + " "
                 elif type(source_column) == BaseColumn:
                     query += source_column.recreate_query() 
+        query += " )" if self.aggregate_func != "" else ""
         if self.row_number != "":
             query = "ROW_NUMBER() OVER ( " + self.row_number + " )"
         if self.alias != "":
