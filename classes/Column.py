@@ -26,7 +26,7 @@ class CaseResult:
         self.result = []
         self.condition: list[NewCondition] = []
         self.leaf_cases = []
-        self.else_result = BaseColumn(parsed_dict.else_case.definition[0]) if hasattr(parsed_dict, "else_case") else ""
+        self.else_result = BaseColumn(parsed_dict.else_case.definition[0]) if hasattr(parsed_dict, "else_case") and hasattr(parsed_dict.else_case, "definition") else ""
         self.source_tables = []
         self.source_columns = []
         for case in parsed_dict.cases:
@@ -105,13 +105,15 @@ class Column:
                 self.aggregate_func = definition.aggregate_func if hasattr(definition, "aggregate_func") else "" 
             else:
                 base_column = BaseColumn(definition, alias_names, alias_list)
+                print(base_column.name)
                 self.source_expression.append(base_column)
                 if base_column.real_column:
                     self.source_columns.append(base_column)
                     self.source_columns += base_column.source_columns
-        if len(self.source_columns) == 1:
-            self.name = self.source_columns[0].name
-
+        for source_column in self.source_columns:
+            if source_column.real_column and source_column.name != "":
+                self.name = source_column.name
+                break
         self.name = self.alias if self.alias != "" else self.name
         # handle case statement
         

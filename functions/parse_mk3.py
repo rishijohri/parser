@@ -71,7 +71,8 @@ def comment_remover(query):
 
 
 # write parse_create_query function here using pyparsing
-def parse_create_query(query, default_chk=default_test_cases):
+def parse_create_query(query, default_chk=default_test_cases, debug=False):
+    pp.ParserElement.enablePackrat()
     # define grammer
     # ALias Grammar
     quoted_string = pp.Or(
@@ -96,31 +97,10 @@ def parse_create_query(query, default_chk=default_test_cases):
                 pp.Optional(allowed_name.setResultsName("source") + pp.Suppress(".")),
                 allowed_name.setResultsName("table_name"),
                 pp.Optional(
-                    pp.MatchFirst(
-                        [
-                            pp.CaselessKeyword(
-                                'STORED AS ORC TBLPROPERTIES ("orc.compress"="SNAPPY")'
-                            ),
-                            pp.CaselessKeyword(
-                                'STORED AS ORC TBLPROPERTIES ("orc.compress"="ZLIB")'
-                            ),
-                            pp.CaselessKeyword(
-                                'STORED AS ORC TBLPROPERTIES ("orc.compress"="LZO")'
-                            ),
-                            pp.CaselessKeyword(
-                                'STORED AS ORC TBLPROPERTIES ("orc.compress"="NONE")'
-                            ),
-                            pp.CaselessKeyword(
-                                'STORED AS ORC TBLPROPERTIES ("orc.compress"="ZSTD")'
-                            ),
-                            pp.CaselessKeyword(
-                                "STORED AS ORC TBLPROPERTIES('orc.compress'='NONE')"
-                            ),
-                            pp.CaselessKeyword(
-                                "STORED AS ORC TBLPROPERTIES('orc.format'='NONE')"
-                            ),
-                        ]
+                    pp.CaselessKeyword(
+                        'STORED AS ORC TBLPROPERTIES ("orc.compress"="SNAPPY")'
                     )
+                    + pp.originalTextFor(pp.nestedExpr("(", ")"))
                 ),
                 pp.Optional(pp.CaselessKeyword("AS")),
             ]
@@ -150,6 +130,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("MAX")
         | pp.CaselessKeyword("CONCAT")
         | pp.CaselessKeyword("SUBSTR")
+        | pp.CaselessKeyword("SUBSTRING")
         | pp.CaselessKeyword("TRIM")
         | pp.CaselessKeyword("COALESCE")
         | pp.CaselessKeyword("CAST")
@@ -165,6 +146,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         | pp.CaselessKeyword("DATE_SUB")
         | pp.CaselessKeyword("DATE_DIFF")
         | pp.CaselessKeyword("DATE_TRUNC")
+        | pp.CaselessKeyword("ROUND")
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
@@ -202,10 +184,10 @@ def parse_create_query(query, default_chk=default_test_cases):
         pp.Optional(base_function).setResultsName("base_func")
         + multi_argu_func.setResultsName("aggregate_func")
         + pp.Suppress("(")
-        + pp.Or([column, case_column]).setResultsName("col_argument")
+        + pp.Group(column).setResultsName("col_argument")
         + pp.Optional(
             (pp.Char(",") | pp.CaselessKeyword("AS"))
-            + pp.delimitedList(column_part | data_types, delim=",").setResultsName(
+            + pp.delimitedList(pp.Group(pp.Or([column, data_types])), delim=",").setResultsName(
                 "arguments"
             )
         )
@@ -226,7 +208,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     column << pp.OneOrMore(  # type: ignore
         pp.MatchFirst(
             [
-                column_part,
+                pp.MatchFirst([base_column, multi_argu_column, case_column]),
                 pp.Literal("(")
                 + column.setResultsName("definition_group")
                 + pp.Literal(")")
@@ -247,7 +229,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
     equality_comparator = (
-        pp.Word("=<>")
+        pp.Word("=<>!")
         | pp.CaselessKeyword("IS NOT LIKE")
         | pp.CaselessKeyword("IS NOT")
         | pp.CaselessKeyword("NOT LIKE")
@@ -281,6 +263,16 @@ def parse_create_query(query, default_chk=default_test_cases):
         )
     )
 
+    exists_condition_clause = pp.Group(
+        pp.And(
+            [
+                pp.CaselessKeyword("EXISTS").setResultsName("comparator"),
+                paranthesis_expression,
+                pp.Optional(delimiter).setResultsName("delimiter"),
+            ]
+        )
+    )
+
     range_comparator = pp.CaselessKeyword("BETWEEN") | pp.CaselessKeyword("NOT BETWEEN")
     assert isinstance(range_comparator, pp.ParserElement)
 
@@ -306,7 +298,12 @@ def parse_create_query(query, default_chk=default_test_cases):
         )
     )
     condition_clause = pp.Or(
-        [equality_condition, between_condition_clause, in_condition_clause]
+        [
+            exists_condition_clause,
+            equality_condition,
+            between_condition_clause,
+            in_condition_clause,
+        ]
     )
 
     condition_group = pp.Forward()
@@ -325,7 +322,7 @@ def parse_create_query(query, default_chk=default_test_cases):
     ).setResultsName("condition_group")
 
     # Case statement grammer
-    case_column << pp.Group(  # type: ignore
+    single_case = (
         pp.CaselessKeyword("CASE")
         + pp.OneOrMore(
             pp.Group(
@@ -341,12 +338,25 @@ def parse_create_query(query, default_chk=default_test_cases):
             ).setResultsName("else_case")
         )
         + pp.CaselessKeyword("END")
+    ).setDebug(debug)
+    case_column << pp.Group(  # type: ignore
+        pp.Or(
+            [
+                pp.Suppress("(")
+                + single_case
+                + pp.Suppress(")")
+                + pp.Optional(pp.Word("+-*/").setResultsName("operator")),
+                single_case + pp.Optional(pp.Word("+-*/").setResultsName("operator")),
+            ]
+        )
     ).setResultsName("case_column")
 
     # Column Set grammar
-    column_definition = pp.Group(
-        pp.MatchFirst([row_num_col, column, case_column]) + column_alias
-    ).setResultsName("column_def")
+    column_definition = (
+        pp.Group(pp.MatchFirst([row_num_col, column, case_column]) + column_alias)
+        .setResultsName("column_def")
+        .setDebug(debug)
+    )
 
     columns = pp.delimitedList(column_definition, delim=",").setResultsName("columns")
 
@@ -422,7 +432,7 @@ def parse_create_query(query, default_chk=default_test_cases):
             pp.Optional(pp.Literal(")")),
             pp.Optional(pp.Literal(";")),
         ]
-    )
+    ).setDebug(debug)
     if default_chk["print_query"]:
         print("Query")
         print(query)
@@ -468,7 +478,7 @@ def parse_create_query(query, default_chk=default_test_cases):
         print("completed: ", table_data.name)
     except Exception as e:
         print("Error in parsing query")
-        print(query)
+        # print(query)
         print(e)
         open("errors/error.hql", "w").write(query)
         raise e

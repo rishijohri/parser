@@ -47,52 +47,51 @@ class BaseColumn:
         operator: operator applied to the column at the end
         col_argument: column argument of the function (BaseColumn)
         '''
+        self.meta_data = parsed_dict
         self.false_column = False
-        self.name = ""
-        self.operator = ""
-        self.source_table = ""
-        self.source_alias = ""
-        self.leaf_column = False
+        self.real_column = False
         if parsed_dict == []:
             self.false_column = True
-        self.real_column = True
-        self.meta_data = parsed_dict
+            return
+        self.name = parsed_dict.name[0] if hasattr(parsed_dict, "name") else ""
+        self.operator = parsed_dict.operator if hasattr(parsed_dict, "operator") else ""
+        self.source_alias = parsed_dict.source[0] if hasattr(parsed_dict, "source") else ""
+        self.source_table = ""
         self.source_columns = []
-        self.source_arguments = []
         self.col_argument = []
+        self.arguments = []
         self.base_func = parsed_dict.base_func if hasattr(parsed_dict, "base_func") else ""
         self.aggregate_func = (
             parsed_dict.aggregate_func if hasattr(parsed_dict, "aggregate_func") else ""
         )
-        self.arguments = (
-            parsed_dict.arguments if hasattr(parsed_dict, "arguments") else []
-        )
-        for argument in self.arguments:
-            base_column = BaseColumn(argument, alias_names, alias_list)
-            self.source_arguments.append(base_column)
-            # self.source_arguments += base_column.source_columns
-            if base_column.real_column:
-                self.source_columns.append(base_column)
-                self.source_columns += base_column.source_columns
-        if hasattr(parsed_dict, "definition"):
-            for definition in parsed_dict.definition:
-                base_column = BaseColumn(definition, alias_names, alias_list)
-                self.col_argument.append(base_column)
-                # self.col_argument += base_column.source_columns
-                if base_column.real_column:
-                    self.source_columns.append(base_column)
-                    self.source_columns += base_column.source_columns
-        
-        self.operator = parsed_dict.operator if hasattr(parsed_dict, "operator") else ""
-        self.name = parsed_dict.name[0] if hasattr(parsed_dict, "name") else ""
-        self.source_alias = (
-            parsed_dict.source[0] if hasattr(parsed_dict, "source") else ""
-        )
 
-
-        if self.name == "" and self.source_columns == []:
-            self.real_column = False
-        if self.real_column and self.aggregate_func == "" and self.source_alias == "":
+        if self.aggregate_func != "":
+            self.real_column = True
+            col_argument = parsed_dict.col_argument.definition if hasattr(parsed_dict, "col_argument") else []
+            arguments = parsed_dict.arguments if hasattr(parsed_dict, "arguments") else []
+            for argument in col_argument:
+                if type(argument) == str:
+                    self.col_argument.append(argument)
+                else:
+                    base_column = BaseColumn(argument, alias_names, alias_list)
+                    self.col_argument.append(base_column)
+                    if base_column.real_column:
+                        self.source_columns.append(base_column)
+                        self.source_columns += base_column.source_columns
+            for argument in arguments:
+                if type(argument) == str:
+                    self.arguments.append(argument)
+                elif hasattr(argument, "definition"):
+                    for definition in argument.definition:
+                        base_column = BaseColumn(definition, alias_names, alias_list)
+                        self.arguments.append(base_column)
+                        if base_column.real_column:
+                            self.source_columns.append(base_column)
+                            self.source_columns += base_column.source_columns
+                
+        elif self.name != "":
+            self.real_column = True
+        if self.real_column:
             # define grammar to figure out if it is a column or a value
             value_grammar = pp.MatchFirst([pp.Word(pp.nums[0:1] + pp.nums + "."), pp.quotedString()])
             value_result = []
@@ -107,8 +106,6 @@ class BaseColumn:
             self.post_process(alias_names, alias_list)
         else:
             self.source_table = ""
-        if self.source_table != "":
-            self.real_column = True
         # print(self.meta_data)
     
 
@@ -132,30 +129,35 @@ class BaseColumn:
         """
         Recreate the query for the column
         """
+        
         query = ""
         query += self.base_func + " " if self.base_func != "" else ""
-        # print("RECREATE INITIATED ", self.name, self.aggregate_func)
+        # print("RECREATE INITIATED \n\t", self.name, "\n\t",self.aggregate_func, "\n\t",self.meta_data)
         if self.false_column:
+            # print("False Column Encounter")
             return ""
         if self.real_column==False:
-            query += self.name
+            # print("Unreal Column Encounter")
+            query += self.name + " "+self.operator
             return query
-        query += self.aggregate_func + "(" if self.aggregate_func != "" else ""
-
-        if len(self.col_argument)==0:
+        if self.aggregate_func != "":
+            query += self.aggregate_func + "("
+            for argument in self.col_argument:
+                if type(argument) == BaseColumn:
+                    query += argument.recreate_query()
+                else:
+                    query += argument
+            if self.aggregate_func.lower() == "cast":
+                query += " as "
+            for argument in self.arguments:
+                query += ", " + argument.recreate_query()
+            query += ")"
+        else:
             query += self.source_table + "." if self.source_table != "" else ""
             query += self.name if self.name != "" else ""
-        else:
-            for argument in self.col_argument:
-                # print(argument.meta_data)
-                query += argument.recreate_query() 
-
-        for argument in self.source_arguments:
-            query += ", " + argument.recreate_query()
-        query += " as " + self.arguments[0] if self.aggregate_func.lower() == "cast" else ""
-        query += ")" if self.aggregate_func != "" else ""
+        
         query += " " + self.operator if self.operator != "" else ""
-        # print("RECREATE ENDED ", self.name, self.aggregate_func)
+        # print("RECREATE ENDED \n\t", self.name, "\n\t", self.aggregate_func)
         return query
 
     def __eq__(self, __value: object) -> bool:

@@ -1,6 +1,7 @@
 CREATE TABLE
     sdb.source2 AS
 SELECT
+    DISTINCT COALESCE(ROUND((DISTINCT b.colmax+colmin)*100/colavg), SUBSTRING("KKK", 8, 9), 7) as colmax,
     a.column1 - DATE_FORMAT (MAX(a.column4), MIN(dd-mm-yyyy)) as whatever,
     ADD_MONTHS(b.column2 + col1, 6) as column2,
     MIN(b.column3),
@@ -15,15 +16,7 @@ SELECT
         when c.column4 = 4 then 2
         else 3
     end) as column45,
-    column5
+    MIN(COAL)
 from
-    (SELECT
-    column1,
-    column3,
-    column4
-    from sdb.source
-    where something between 4 and 5 or abc = 33) a
-    LEFT JOIN source3 b on a.column1 = b.column56
-    where something between 4 and 5 and (
-        abc = 33 or bss = 32
-    )
+    source1
+where SUBSTRING(prod_cd, 3, 5) in ("CCC", "DDF", "HHH", "NCN")

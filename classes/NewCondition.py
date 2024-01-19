@@ -91,7 +91,7 @@ class NewCondition:
                 if type(self.RHS[0])==str and self.RHS[0].lower() == "select":
                     query += "(" + self.recreate_sub_query() + ") "
                 else:
-                    query += "(" + ", ".join(self.RHS) + ") " # type: ignore
+                    query += "(" + " ".join(self.RHS) + ") " # type: ignore
             elif self.comparator.lower() == "between":
                 query += self.RHS[0].recreate_query() + " AND " + self.RHS[1].recreate_query()
             else:

@@ -39,6 +39,7 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("MAX"),
         ~pp.CaselessKeyword("CONCAT"),
         ~pp.CaselessKeyword("SUBSTR"),
+        ~pp.CaselessKeyword("SUBSTRING"),
         ~pp.CaselessKeyword("TRIM"),
         ~pp.CaselessKeyword("COALESCE"),
         ~pp.CaselessKeyword("CAST"),
@@ -63,6 +64,7 @@ special_words: pp.ParserElement = pp.And(
         ~pp.CaselessKeyword("DATE_SUB"),
         ~pp.CaselessKeyword("DATE_DIFF"),
         ~pp.CaselessKeyword("DATE_TRUNC"),
+        ~pp.CaselessKeyword("ROUND"),
         
         #expressions
         ~pp.CaselessKeyword("OVER"),

@@ -1,7 +1,13 @@
 from typing import List, Tuple
 from classes.Table import Table
 
-
+def get_table_columns(table_name, tables):
+    columns = []
+    for table in tables:
+        if table.name == table_name:
+            columns = [col.name for col in table.columns]
+            break
+    return columns
 
 def get_follow_sources(
     table_name, column_names=[], tables: List[Table]=[]
