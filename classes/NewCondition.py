@@ -1,5 +1,4 @@
 import pyparsing as pp
-from .constants import special_char_name, special_words_list, special_words
 from .BaseColumn import BaseColumn
 from pprint import pprint
 from typing import Any

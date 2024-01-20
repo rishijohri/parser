@@ -1,5 +1,4 @@
 import pyparsing as pp
-from .ConditionGroup import ConditionGroup
 from .NewCondition import NewCondition
 from collections import namedtuple
 from typing import Any, Union

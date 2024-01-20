@@ -1,9 +1,8 @@
 import pyparsing as pp
-from .ConditionGroup import ConditionGroup
 from .Column import Column
 from .Join import Join
 from .NewCondition import NewCondition
-from typing import Any, List, Union
+from typing import List, Union
 class Table:
     def __init__(self, name: str = "Unset"):
         self.database: str = "Default"

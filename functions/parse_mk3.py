@@ -2,13 +2,7 @@ import pyparsing as pp
 import re
 from types import SimpleNamespace
 from pprint import pprint
-from typing import Tuple, List
-from classes.constants import special_words, special_words_list, special_char_name
-from classes.BaseColumn import BaseColumn
-from classes.Condition import Condition
-from classes.ConditionGroup import ConditionGroup
-from classes.Column import Column
-from classes.Join import Join
+from classes.constants import special_words, special_char_name, function_names, data_types_list
 from classes.Table import Table
 
 import functions.test_cases as test_cases
@@ -98,7 +92,7 @@ def parse_create_query(query, default_chk=default_test_cases, debug=False):
                 allowed_name.setResultsName("table_name"),
                 pp.Optional(
                     pp.CaselessKeyword(
-                        'STORED AS ORC TBLPROPERTIES ("orc.compress"="SNAPPY")'
+                        'STORED AS ORC TBLPROPERTIES'
                     )
                     + pp.originalTextFor(pp.nestedExpr("(", ")"))
                 ),
@@ -122,51 +116,15 @@ def parse_create_query(query, default_chk=default_test_cases, debug=False):
         + table_alias
     ).setResultsName("table_def")
 
-    multi_argu_func = (
-        pp.CaselessKeyword("SUM")
-        | pp.CaselessKeyword("AVG")
-        | pp.CaselessKeyword("COUNT")
-        | pp.CaselessKeyword("MIN")
-        | pp.CaselessKeyword("MAX")
-        | pp.CaselessKeyword("CONCAT")
-        | pp.CaselessKeyword("SUBSTR")
-        | pp.CaselessKeyword("SUBSTRING")
-        | pp.CaselessKeyword("TRIM")
-        | pp.CaselessKeyword("COALESCE")
-        | pp.CaselessKeyword("CAST")
-        | pp.CaselessKeyword("DATE_FORMAT")
-        | pp.CaselessKeyword("ADD_MONTHS")
-        | pp.CaselessKeyword("MONTH")
-        | pp.CaselessKeyword("CURRENT_DATE")
-        | pp.CaselessKeyword("YEAR")
-        | pp.CaselessKeyword("DAY")
-        | pp.CaselessKeyword("DATE")
-        | pp.CaselessKeyword("CURRENT_TIMESTAMP")
-        | pp.CaselessKeyword("DATE_ADD")
-        | pp.CaselessKeyword("DATE_SUB")
-        | pp.CaselessKeyword("DATE_DIFF")
-        | pp.CaselessKeyword("DATE_TRUNC")
-        | pp.CaselessKeyword("ROUND")
+    multi_argu_func = pp.Or(
+        [pp.CaselessKeyword(name) for name in function_names]
     )
     assert isinstance(multi_argu_func, pp.ParserElement)
 
     base_function = pp.CaselessKeyword("DISTINCT")
     assert isinstance(base_function, pp.ParserElement)
-    data_types = (
-        pp.CaselessKeyword("INT")
-        | pp.CaselessKeyword("FLOAT")
-        | pp.CaselessKeyword("DOUBLE")
-        | pp.CaselessKeyword("DATE")
-        | pp.CaselessKeyword("TIMESTAMP")
-        | pp.CaselessKeyword("STRING")
-        | pp.CaselessKeyword("VARCHAR")
-        | pp.CaselessKeyword("CHAR")
-        | pp.CaselessKeyword("BIGINT")
-        | pp.CaselessKeyword("BOOLEAN")
-        | pp.CaselessKeyword("DECIMAL")
-        | pp.CaselessKeyword("TINYINT")
-        | pp.CaselessKeyword("SMALLINT")
-        | pp.CaselessKeyword("BINARY")
+    data_types = pp.Or(
+        [pp.CaselessKeyword(name) for name in data_types_list]
     )
     assert isinstance(data_types, pp.ParserElement)
     # Base column Grammar (Column can have aggregation function)
@@ -216,15 +174,6 @@ def parse_create_query(query, default_chk=default_test_cases, debug=False):
             ]
         )
     ).setResultsName("definition")
-    # column << pp.Or(
-    #     [  # type: ignore
-    #         pp.OneOrMore(column).setResultsName("definition"),
-    #         pp.Suppress("(")
-    #         + pp.OneOrMore(column).setResultsName("definition_group")
-    #         + pp.Suppress(")")
-    #         + pp.Optional(pp.Word("+-*/").setResultsName("operator_higher") + column),
-    #     ]
-    # ).setResultsName("column")
 
     # Conditions grammer
     delimiter = pp.MatchFirst([pp.CaselessKeyword("AND"), pp.CaselessKeyword("OR")])
@@ -329,31 +278,23 @@ def parse_create_query(query, default_chk=default_test_cases, debug=False):
                 pp.CaselessKeyword("WHEN")
                 + condition_group
                 + pp.CaselessKeyword("THEN")
-                + pp.MatchFirst([column, case_column]).setResultsName("result")
-            ).setResultsName("case")
+                + pp.Group(pp.MatchFirst([column])).setResultsName("result")
+            )
         ).setResultsName("cases")
         + pp.Optional(
             pp.Group(
-                pp.CaselessKeyword("ELSE") + pp.MatchFirst([column, case_column])
+                pp.Suppress(pp.CaselessKeyword("ELSE")) + pp.MatchFirst([column])
             ).setResultsName("else_case")
         )
         + pp.CaselessKeyword("END")
     ).setDebug(debug)
     case_column << pp.Group(  # type: ignore
-        pp.Or(
-            [
-                pp.Suppress("(")
-                + single_case
-                + pp.Suppress(")")
-                + pp.Optional(pp.Word("+-*/").setResultsName("operator")),
-                single_case + pp.Optional(pp.Word("+-*/").setResultsName("operator")),
-            ]
-        )
-    ).setResultsName("case_column")
+                single_case + pp.Optional(pp.Word("+-*/").setResultsName("operator"))
+    )
 
     # Column Set grammar
     column_definition = (
-        pp.Group(pp.MatchFirst([row_num_col, column, case_column]) + column_alias)
+        pp.Group(pp.MatchFirst([row_num_col, column]) + column_alias)
         .setResultsName("column_def")
         .setDebug(debug)
     )

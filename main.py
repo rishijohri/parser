@@ -10,14 +10,14 @@ default_test_cases = {
     "table": False,
     "query": False,
     "print_query": False,
-    "print_result": False,
+    "print_result": True,
 }
 to_print = True
 run_default = True
 tables = []
 file_path = "code/single_query.sql"
 table_name = "source2"
-column_name = ["colmax"]
+column_name = ["colstrange"]
 with open(file_path, "r"):
     print("reading file")
     tables = read_script(file_path, default_test_cases)

@@ -1,3 +1,16 @@
+create TABLE
+    sdb.source1 AS
+SELECT
+    column4,
+    column1,
+    column66,
+    abc,
+    column99,
+    colmin,
+    colmax,
+    def
+from true_source;
+
 CREATE TABLE
     sdb.source2 AS
 SELECT
@@ -16,6 +29,13 @@ SELECT
         when c.column4 = 4 then 2
         else 3
     end) as column45,
+    (case WHEN (abc = 'GREAT' or abc = 'OUTSTANDING') and review>4 then 22
+    when abc = 'GOOD' then 21
+    when abc = 'what-are-you' then
+        case when def = 'here' then 1
+        when def = 'villain' then 2
+        else 3 END
+    else 20 end) as colstrange, 
     MIN(COAL)
 from
     source1
